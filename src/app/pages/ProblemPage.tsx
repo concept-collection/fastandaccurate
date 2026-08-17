@@ -13,6 +13,7 @@ import {
 } from "../results";
 import { solverColorVar } from "../colors";
 import { sweepInBrowser } from "../workerClient";
+import { solverSource } from "../matlabSources";
 import {
   WorkPrecisionChart,
   type ChartCurve,
@@ -241,6 +242,48 @@ export function ProblemPage({ problemId }: { problemId: string }) {
         </div>
         <DomainView inst={inst} />
       </div>
+
+      <h2>Solvers</h2>
+      <p className="small muted" style={{ maxWidth: 640 }}>
+        Each solver is a MATLAB function file implementing the interface in
+        the <a href={SPEC_URL}>specification</a>; the same file runs in the
+        browser via numbl and from the command line.
+      </p>
+      {SOLVERS.map((s) => (
+        <div
+          key={s.id}
+          className="panel"
+          style={{ maxWidth: 860, marginBottom: 12 }}
+        >
+          <div>
+            <span
+              className="legend-swatch"
+              style={{ background: solverColorVar(s.id, allSolverIds) }}
+            />
+            <strong>{s.name}</strong>{" "}
+            <span className="small muted">
+              {s.id} v{s.version} · {s.backend}
+            </span>
+          </div>
+          <p className="small" style={{ color: "var(--text-2)" }}>
+            {s.description}
+          </p>
+          <details>
+            <summary className="small" style={{ cursor: "pointer" }}>
+              solver.m
+            </summary>
+            <pre style={{ maxHeight: 420, overflow: "auto", marginTop: 8 }}>
+              {solverSource(s.id)}
+            </pre>
+          </details>
+          <a
+            className="small"
+            href={`${REPO_URL}/blob/main/src/solvers/${s.id}/solver.m`}
+          >
+            view on GitHub
+          </a>
+        </div>
+      ))}
 
       <h2>Work-precision results</h2>
       {committedError && (
