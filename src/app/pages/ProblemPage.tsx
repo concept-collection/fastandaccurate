@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  DEFAULT_INSTANCE,
   INSTANCES,
   getInstance,
   PROBLEM_ID,
@@ -35,7 +36,7 @@ interface LocalRun {
 }
 
 export function ProblemPage({ problemId }: { problemId: string }) {
-  const [instanceId, setInstanceId] = useState(INSTANCES[1].id);
+  const [instanceId, setInstanceId] = useState(DEFAULT_INSTANCE);
   const [committed, setCommitted] = useState<ResultFile[] | null>(null);
   const [committedError, setCommittedError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState<ResultFile[]>([]);

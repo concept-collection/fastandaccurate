@@ -28,13 +28,16 @@ export const SOLVERS: SolverManifest[] = [
       "Represents the solution as n logarithmic point charges on a curve " +
       "a fixed distance 0.3 outside the boundary, with strengths found by " +
       "collocation at n boundary points. Converges geometrically when the " +
-      "data continues harmonically past the charge curve; stagnates when " +
-      "it does not (the star-hard instance). Ill-conditioning caps the " +
-      "attainable accuracy near 1e-10 in exchange for very small n.",
+      "data continues harmonically past the charge curve, reaching machine " +
+      "precision on the easier instances with far less work than the " +
+      "integral-equation methods. When the data's singularities sit inside " +
+      "that curve, as on star-hard, convergence is lost: more charges keep " +
+      "helping only until the system's ill-conditioning takes over, and the " +
+      "error settles near 1e-6 however far the sweep is pushed.",
     version: "1.0.0",
     backend: "cpu",
     runtime: "numbl",
-    sweepN: [8, 12, 16, 24, 32, 48, 64, 96, 128, 192, 256],
+    sweepN: [8, 12, 16, 24, 32, 48, 64, 96, 128, 192, 256, 384, 512, 768],
   },
   {
     id: "nystrom-dlp",

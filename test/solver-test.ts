@@ -33,7 +33,7 @@ const solverSources: Record<string, MatlabSources> = {
 // beyond the data's singularities there, and if it suddenly reached high
 // accuracy the instance would no longer be testing what the spec says.
 const mustReach: Record<string, Record<string, number>> = {
-  mfs: { "disk-easy": 1e-12, "star-medium": 1e-12, "star-hard": 1e-2 },
+  mfs: { "disk-easy": 1e-12, "star-medium": 1e-12, "star-hard": 1e-4 },
   "nystrom-dlp": { "disk-easy": 1e-10, "star-medium": 1e-10, "star-hard": 1e-8 },
 };
 const mustNotReach: Record<string, Record<string, number>> = {

@@ -54,6 +54,10 @@ export const INSTANCES: Laplace2dInstance[] = [
   },
 ];
 
+/** The instance a visitor sees first: the one that separates the methods
+ * most sharply. */
+export const DEFAULT_INSTANCE = "star-hard";
+
 export function getInstance(id: string): Laplace2dInstance {
   const inst = INSTANCES.find((i) => i.id === id);
   if (!inst) throw new Error(`Unknown instance: ${id}`);
