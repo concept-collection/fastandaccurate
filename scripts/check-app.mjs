@@ -61,14 +61,18 @@ try {
   await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: "networkidle2" });
   await page.waitForSelector("h1");
 
-  // The empty-state or chart should be present.
-  const hasChartArea = await page.evaluate(
-    () => document.body.innerText.includes("Work-precision results")
-  );
-  if (!hasChartArea) {
-    console.error("FAIL: work-precision section missing");
+  // Home: the problem list with a clickable card.
+  const card = await page.$('a[href="#/problem/laplace-dirichlet-2d"]');
+  if (!card) {
+    console.error("FAIL: problem card missing on home page");
     failures++;
+  } else {
+    await card.click();
   }
+  await page.waitForFunction(
+    () => document.body.innerText.includes("Work-precision results"),
+    { timeout: 30000 }
+  );
 
   // One real solve through the worker: the Solution section's compute
   // button, default solver (mfs) at its default n.

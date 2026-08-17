@@ -228,3 +228,69 @@ footer {
   color: var(--text-3);
   font-size: 0.85rem;
 }
+
+.topnav {
+  padding-top: 1.1rem;
+  font-size: 0.9rem;
+}
+
+.topnav a {
+  color: var(--text-2);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.topnav a:hover {
+  color: var(--text);
+}
+
+.problem-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 720px;
+}
+
+.problem-card {
+  display: block;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 18px;
+  text-decoration: none;
+  color: var(--text);
+  background: var(--surface);
+}
+
+.problem-card:hover {
+  border-color: var(--text-3);
+}
+
+.problem-card-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.02rem;
+  font-weight: 650;
+}
+
+.problem-card-summary {
+  color: var(--text-2);
+  margin-top: 4px;
+  font-size: 0.92rem;
+}
+
+.problem-card-meta {
+  color: var(--text-3);
+  margin-top: 6px;
+  font-size: 0.82rem;
+}
+
+.badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  background: var(--surface-2);
+}
