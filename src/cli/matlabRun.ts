@@ -88,15 +88,22 @@ export function runMatlabSweep(opts: MatlabSweepOptions): MatlabSweepResult {
       `nrep = ${repeats};`,
       `prob = build_problem(${instance.a}, ${instance.k}, ${instance.d}, 0);`,
       "results = cell(numel(ns), 1);",
+      "% Session-level warmup: the whole sweep shares one MATLAB process, so",
+      "% without this the first resolution absorbs all of the one-time cost",
+      "% (loading the solver's dependencies, quadrature tables, JIT).",
+      "for w = 1:2",
+      "  solver(prob, ns(max(1, floor(numel(ns)/2))));",
+      "end",
       "for i = 1:numel(ns)",
       "  n = ns(i);",
       "  tic; out = solver(prob, n); cold = toc;",
+      "  out = solver(prob, n);",
       "  times = zeros(nrep, 1);",
       "  for r = 1:nrep",
       "    tic; out = solver(prob, n); times(r) = toc;",
       "  end",
       "  results{i} = struct('n', n, 'cold', cold, 'times', times, 'ueval', out.uEval);",
-      "  fprintf('point n=%d done (%.3fs)\\n', n, median(times));",
+      "  fprintf('point n=%d done (%.3fs)\\n', n, min(times));",
       "end",
       "payload = struct('matlabVersion', version, 'results', {results});",
       "fid = fopen('out_results.json', 'w');",
@@ -127,15 +134,10 @@ export function runMatlabSweep(opts: MatlabSweepOptions): MatlabSweepResult {
       : [payload.results];
     const points = entries.map((e) => {
       const times = asArray(e.times);
-      const sorted = [...times].sort((x, y) => x - y);
-      const median =
-        sorted.length % 2 === 1
-          ? sorted[(sorted.length - 1) / 2]
-          : (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2;
       const { relMax, relL2 } = evalErrors(instance, e.ueval);
       return {
         n: e.n,
-        solveSeconds: median,
+        solveSeconds: Math.min(...times),
         solveSecondsAll: times,
         coldSeconds: e.cold,
         relMax,

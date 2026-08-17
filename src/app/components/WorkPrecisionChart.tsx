@@ -205,14 +205,22 @@ export function WorkPrecisionChart({ curves }: { curves: ChartCurve[] }) {
         </text>
         {/* curves */}
         {nonEmpty.map((c) => {
-          const pts = [...c.points].sort((a, b) => a.solveSeconds - b.solveSeconds);
+          // Connected in order of the solver's own resolution parameter,
+          // which is what traces the curve. Time need not increase with n
+          // (a solver can get both slower and less accurate as n falls),
+          // so the curve may double back; ordering by time instead would
+          // produce a meaningless zigzag.
+          const pts = [...c.points].sort((a, b) => a.n - b.n);
           const path = pts
             .map(
               (p, i) =>
                 `${i === 0 ? "M" : "L"}${sx(p.solveSeconds).toFixed(1)},${sy(Math.max(p.relMax, 1e-17)).toFixed(1)}`
             )
             .join("");
-          const last = pts[pts.length - 1];
+          // Label at the rightmost point, which need not be the last one.
+          const last = pts.reduce((a, b) =>
+            b.solveSeconds > a.solveSeconds ? b : a
+          );
           return (
             <g key={c.key}>
               <path

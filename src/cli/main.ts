@@ -119,7 +119,7 @@ function listCommand() {
 }
 
 async function runCommand(flags: Record<string, string>) {
-  const repeats = flags.repeats ? parseInt(flags.repeats, 10) : 3;
+  const repeats = flags.repeats ? parseInt(flags.repeats, 10) : 5;
   const maxN = flags["max-n"] ? parseInt(flags["max-n"], 10) : undefined;
   const outDir = resolve(flags.out ?? "fastandaccurate-results-out");
   const instances = flags.instance
@@ -259,7 +259,7 @@ async function main() {
         "  --solver-file <f.m>  A custom solver file (requires --solver-id)",
         "  --solver-id <name>   Identifier for the custom solver",
         "  --solver-version <v> Version string for the custom solver",
-        "  --repeats <N>        Timed repeats per point (default 3)",
+        "  --repeats <N>        Timed repeats per point (default 5)",
         "  --max-n <N>          Restrict the sweep to n <= N",
         "  --label <text>       Free-text machine label recorded in results",
         "  --out <dir>          Output directory (default fastandaccurate-results-out)",

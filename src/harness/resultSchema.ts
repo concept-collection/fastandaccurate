@@ -30,6 +30,7 @@ export interface ResultEnvironment {
 
 export interface ResultPoint {
   n: number;
+  /** The fastest of the timed runs. */
   solveSeconds: number;
   solveSecondsAll: number[];
   coldSeconds: number;
@@ -57,6 +58,8 @@ export interface ResultFile {
   protocol: {
     warmupRuns: number;
     timedRuns: number;
+    /** Which statistic of the timed runs is reported as solveSeconds. */
+    statistic: "min";
     timer: string;
   };
   createdUtc: string;
@@ -105,8 +108,9 @@ export async function buildResultFile(opts: {
     solver: opts.solver,
     environment: opts.environment,
     protocol: {
-      warmupRuns: 1,
+      warmupRuns: 2,
       timedRuns: opts.repeats,
+      statistic: "min",
       timer: opts.timer ?? "numbl tic/toc",
     },
     createdUtc: new Date().toISOString(),

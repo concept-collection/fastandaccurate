@@ -70,14 +70,28 @@ test it.
 ## Timing protocol
 
 One run is a full call of the solver, including its own discretization,
-assembly, solve, and evaluation. The harness performs one untimed warmup
-run (which absorbs numbl's JIT compilation and is recorded separately as
-the cold time), then N timed runs (N = 3 unless stated), and reports the
-median as the solve time. All timing is tic/toc inside the MATLAB
-session, so browser and node runs measure the same thing. Times from
-different machines are not comparable; every result records its
-environment, and comparisons across environments are the reader's
-responsibility.
+assembly, solve, and evaluation. The harness performs two untimed warmup
+runs (the first of which is recorded separately as the cold time), then N
+timed runs (N = 5 unless stated), and reports the **fastest** of them as
+the solve time. The minimum is used rather than the mean or median
+because everything that interferes with a measurement (scheduling, other
+load, residual JIT compilation) only ever adds time, so the fastest run
+is the least contaminated estimate of the solver's own cost; every
+individual timing is recorded in the result file regardless. Where a
+sweep shares one process across resolutions, as the MATLAB runner does,
+warmup runs precede the sweep as well, so that the first resolution does
+not absorb the session's one-time costs. All timing is tic/toc inside the
+solver's own runtime, so browser, node and MATLAB runs measure the same
+thing. Times from different machines are not comparable; every result
+records its environment, and comparisons across environments are the
+reader's responsibility.
+
+Note that solve time need not increase with the resolution parameter n. A
+solver whose cost is dominated by a per-target near-field computation can
+get *slower* as n decreases, since coarser panels put more targets in the
+near field. Work-precision curves are therefore drawn as parametric
+curves in n, and may double back in time; a point that is both slower and
+less accurate than another point on the same curve is simply dominated.
 
 ## Solver interface
 

@@ -31,9 +31,13 @@ export function AboutPage() {
         error against compute time, traced out as the solver's resolution
         parameter varies. Errors are measured at a fixed set of evaluation
         points defined per instance, relative to the reference solution.
-        Timing is one untimed warmup run (which absorbs JIT compilation),
-        then the median of repeated timed runs; a run includes the solver's
-        own discretization, assembly, solve, and evaluation.
+        Timing is two untimed warmup runs followed by several timed runs, of
+        which the fastest is reported: interference only ever adds time, so
+        the fastest run is the least contaminated estimate of the solver's
+        own cost. A run includes the solver's own discretization, assembly,
+        solve, and evaluation. Curves are traced in order of the solver's
+        resolution parameter, and may double back in time, since a solver's
+        cost need not increase with resolution.
       </p>
 
       <h2>Results and provenance</h2>

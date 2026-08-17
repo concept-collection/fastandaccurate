@@ -24,7 +24,7 @@ export function runSweep(opts: SweepOptions): RunPoint[] {
     const p = runPoint({
       instance: opts.instance,
       n,
-      repeats: opts.repeats ?? 3,
+      repeats: opts.repeats ?? 5,
       sources: opts.sources,
     });
     points.push(p);
