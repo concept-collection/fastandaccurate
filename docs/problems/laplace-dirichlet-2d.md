@@ -50,9 +50,9 @@ site's interactive views, but such runs are not recorded.
 
 ## What is scored
 
-Each instance fixes 65 evaluation points: 16 rays at angles
-θ_j = 2πj/16 + 0.13 (j = 0, …, 15), radial fractions
-ρ ∈ {0.25, 0.5, 0.75, 0.9} along each ray (the point at fraction ρ on ray
+Each instance fixes 289 evaluation points: 32 rays at angles
+θ_j = 2πj/32 + 0.13 (j = 0, …, 31), radial fractions
+ρ ∈ {0.1, 0.2, …, 0.9} along each ray (the point at fraction ρ on ray
 θ is ρ r(θ) (cos θ, sin θ)), ordered radius-major, plus the origin last.
 The solver returns u at exactly these points. Reported errors are
 
@@ -95,10 +95,10 @@ manifest) and prob is a struct with fields
 | `prob.curveD` | first derivative of the curve with respect to t |
 | `prob.curveDD` | second derivative |
 | `prob.g` | `@(t) -> g`, Dirichlet data at boundary parameter t |
-| `prob.evalXY` | 65×2, the evaluation points |
+| `prob.evalXY` | 289×2, the evaluation points |
 | `prob.vizXY` | m×2, visualization grid points (m = 0 when not requested) |
 
-The return value is a struct: `out.uEval` (65×1, required) and
+The return value is a struct: `out.uEval` (289×1, required) and
 `out.uGrid` (m×1; `[]` when `prob.vizXY` is empty). The solver must not
 reconstruct the sources analytically or otherwise special-case the known
 solution; submissions are reviewed for this.

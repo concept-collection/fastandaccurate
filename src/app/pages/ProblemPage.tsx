@@ -339,8 +339,8 @@ export function ProblemPage({ problemId }: { problemId: string }) {
         Compute one solve at a chosen resolution and compare the field with
         the exact solution, on a shared color scale. The error map shows the
         absolute pointwise difference on a log scale; the errors reported in
-        the results above are measured at the 65 evaluation points, marked
-        as dots on the error map.
+        the results above are measured at the evaluation points, which can
+        be shown on the error map.
       </p>
       <SolutionSection inst={inst} />
     </>

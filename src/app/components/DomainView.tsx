@@ -55,7 +55,7 @@ export function DomainView({ inst }: { inst: Laplace2dInstance }) {
       ctx.fillStyle = token("--text-2");
       for (const p of evalPoints(inst)) {
         ctx.beginPath();
-        ctx.arc(X(p.x), Y(p.y), 2, 0, 2 * Math.PI);
+        ctx.arc(X(p.x), Y(p.y), 1.4, 0, 2 * Math.PI);
         ctx.fill();
       }
 
@@ -83,7 +83,7 @@ export function DomainView({ inst }: { inst: Laplace2dInstance }) {
     <figure style={{ margin: 0 }}>
       <canvas ref={canvasRef} />
       <figcaption className="field-caption" style={{ maxWidth: 360 }}>
-        The domain, the 65 evaluation points where solutions are scored
+        The domain, the evaluation points where solutions are scored
         (dots), and the exact solution's sources a distance {inst.d} outside
         the boundary (crosses).
       </figcaption>

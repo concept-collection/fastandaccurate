@@ -49,15 +49,15 @@ export function exactU(inst: Laplace2dInstance, x: number, y: number): number {
   return u;
 }
 
-/** The 65 evaluation points: 16 rays, radial fractions
- * [0.25, 0.5, 0.75, 0.9], plus the origin. Order matches
- * build_problem.m: radius outer, angle inner, origin last. */
+/** The 289 evaluation points: 32 rays, radial fractions 0.1..0.9, plus
+ * the origin. Order matches build_problem.m: radius outer, angle inner,
+ * origin last. */
 export function evalPoints(inst: Laplace2dInstance): { x: number; y: number }[] {
-  const rho = [0.25, 0.5, 0.75, 0.9];
+  const rho = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9];
   const pts: { x: number; y: number }[] = [];
   for (const r of rho) {
-    for (let j = 0; j < 16; j++) {
-      const th = (2 * Math.PI * j) / 16 + 0.13;
+    for (let j = 0; j < 32; j++) {
+      const th = (2 * Math.PI * j) / 32 + 0.13;
       const rr = r * boundaryR(inst, th);
       pts.push({ x: rr * Math.cos(th), y: rr * Math.sin(th) });
     }

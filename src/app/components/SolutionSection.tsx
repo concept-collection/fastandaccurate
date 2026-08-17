@@ -41,6 +41,7 @@ export function SolutionSection({ inst }: { inst: Laplace2dInstance }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [computed, setComputed] = useState<Computed | null>(null);
+  const [showMarks, setShowMarks] = useState(false);
 
   const exact = useMemo(() => exactGridValues(inst), [inst]);
 
@@ -113,6 +114,14 @@ export function SolutionSection({ inst }: { inst: Laplace2dInstance }) {
         <button className="primary" onClick={compute} disabled={busy}>
           {busy ? "computing…" : "Compute in this browser"}
         </button>
+        <label className="small">
+          <input
+            type="checkbox"
+            checked={showMarks}
+            onChange={(e) => setShowMarks(e.target.checked)}
+          />{" "}
+          show evaluation points on the error map
+        </label>
       </div>
       {error && <p className="small" style={{ color: "var(--series-2)" }}>{error}</p>}
       <div className="row">
@@ -139,9 +148,15 @@ export function SolutionSection({ inst }: { inst: Laplace2dInstance }) {
             inst={inst}
             values={errField}
             mode="logmag"
-            overlayPoints={marks}
+            overlayPoints={showMarks ? marks : undefined}
             title="Pointwise error (log scale)"
-            caption="Absolute difference from the exact solution; the color scale spans 8 decades below the maximum. Dots mark the 65 evaluation points where the reported errors are measured."
+            caption={
+              "Absolute difference from the exact solution; the color scale " +
+              "spans 8 decades below the maximum." +
+              (showMarks
+                ? ` Dots mark the ${marks.length} evaluation points where the reported errors are measured.`
+                : "")
+            }
           />
         )}
       </div>

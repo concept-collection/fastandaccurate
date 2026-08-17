@@ -18,7 +18,7 @@ function prob = build_problem(a, k, d, wantGrid)
 %   curveD  @(t) -> [x' y']      first derivative
 %   curveDD @(t) -> [x'' y'']    second derivative
 %   g       @(t) -> g            Dirichlet data at boundary parameter t
-%   evalXY  65 x 2               points where uEval is required
+%   evalXY  289 x 2              points where uEval is required
 %   vizXY   m x 2                grid points where uGrid is requested
 %                                (m = 0 when no visualization is wanted)
 
@@ -41,10 +41,11 @@ prob.curveDD = @(t) [(-a*k*k*cos(k*t) - 1 - a*cos(k*t)).*cos(t) + 2*a*k*sin(k*t)
                      (-a*k*k*cos(k*t) - 1 - a*cos(k*t)).*sin(t) - 2*a*k*sin(k*t).*cos(t)];
 prob.g = @(t) laplace2d_bdata(t, a, k, sx, sy, c);
 
-% Evaluation points: 16 rays, 4 radial fractions, plus the origin.
-% The rule must match evalPoints() in src/problems/laplace2d/exact.ts.
-rho = [0.25; 0.5; 0.75; 0.9];
-th = 2*pi*(0:15)'/16 + 0.13;
+% Evaluation points: 32 rays, radial fractions 0.1..0.9, plus the origin
+% (289 points). The rule must match evalPoints() in
+% src/problems/laplace2d/exact.ts.
+rho = (1:9)'/10;
+th = 2*pi*(0:31)'/32 + 0.13;
 pts = zeros(numel(rho)*numel(th) + 1, 2);
 idx = 1;
 for i = 1:numel(rho)
