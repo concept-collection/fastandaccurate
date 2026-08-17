@@ -10,7 +10,6 @@ import {
   environmentLabel,
   fetchCommittedResults,
   isResultFile,
-  RESULTS_REPO_URL,
 } from "../results";
 import { solverColorVar } from "../colors";
 import { sweepInBrowser } from "../workerClient";
@@ -299,15 +298,13 @@ export function ProblemPage({ problemId }: { problemId: string }) {
       {runStatus && <p className="small muted">{runStatus}</p>}
       <h3>Run this on your machine</h3>
       <p className="small muted" style={{ maxWidth: 640 }}>
-        Browser runs are for comparison only; result files are produced
-        outside the browser. This command runs the{" "}
+        This command runs the{" "}
         {visibleSolverList.length === 1
           ? `${visibleSolverList[0].id} sweep`
           : "same sweeps"}{" "}
         on the <code>{instanceId}</code> instance (node 20 or newer) and
-        writes result JSON files, which can be loaded below to see them on
-        this chart, and submitted by pull request (see{" "}
-        <a href="#/about">About</a>).
+        writes result JSON files. Load them below to see them on this chart,
+        or submit them by pull request (see <a href="#/about">About</a>).
       </p>
       <div className="row" style={{ alignItems: "flex-start", gap: 10 }}>
         <pre style={{ margin: 0, flex: "1 1 420px", overflowX: "auto" }}>
@@ -344,13 +341,6 @@ export function ProblemPage({ problemId }: { problemId: string }) {
         the error is the absolute pointwise difference on a log scale.
       </p>
       <SolutionSection inst={inst} />
-
-      <p className="small muted" style={{ marginTop: "2.2rem" }}>
-        Result files are produced with the command line (above) and
-        submitted by pull request to the{" "}
-        <a href={RESULTS_REPO_URL}>results repository</a>; see{" "}
-        <a href="#/about">About</a>.
-      </p>
     </>
   );
 }

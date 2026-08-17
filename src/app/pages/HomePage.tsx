@@ -31,9 +31,7 @@ export function HomePage() {
         ))}
       </div>
       <p className="small muted" style={{ marginTop: 16 }}>
-        More problems are planned: further 2D problems (Helmholtz,
-        time-dependent), 3D problems, and near-boundary evaluation variants.
-        Suggestions and contributions are welcome on{" "}
+        Suggestions and contributions of problems and solvers are welcome on{" "}
         <a href="https://github.com/concept-collection/fastandaccurate">GitHub</a>.
       </p>
     </>

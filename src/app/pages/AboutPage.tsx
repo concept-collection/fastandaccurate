@@ -44,9 +44,8 @@ export function AboutPage() {
         Result files are produced by the command line; solvers included on
         the site can also be rerun in the browser, directly on the problem
         page, to compare against the committed curves. Results from solvers
-        outside the repository (and, in the future, from other languages and
-        hardware) enter the same way and are marked as not reproducible in
-        the browser.
+        outside the repository enter the same way and are marked as not
+        reproducible in the browser.
       </p>
 
       <h2>Running outside the browser</h2>

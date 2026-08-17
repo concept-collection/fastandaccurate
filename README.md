@@ -10,15 +10,14 @@ discretization, which quietly decides much of the outcome. Here each
 a solver chooses its own discretization and is scored at
 problem-specified evaluation points. The central object is the
 **work-precision curve**: error against compute time as the solver's
-resolution varies. There is deliberately no single ranking, since which
-curve wins can differ by accuracy regime, instance, and machine.
+resolution varies. No single ranking is presented; which curve wins can
+differ by accuracy regime, instance, and machine.
 
 Solvers are MATLAB function files run by [numbl](https://numbl.org)
 (MATLAB syntax in the browser and in node), so every run on this site
 happens client side, and the identical harness runs from the command
 line. Each problem defines its own interface and instances in a written
-specification; the system is deliberately loose, and per-problem
-interfaces are expected to differ.
+specification; interfaces are per problem rather than shared.
 
 ## Problems
 
@@ -31,11 +30,11 @@ interfaces are expected to differ.
 
 Results are work-precision sweeps stored as JSON files in
 [fastandaccurate-results](https://github.com/concept-collection/fastandaccurate-results)
-and added by pull request; the site reads that repository statically, so
-there is no database and no server. Every result records its provenance:
-instance spec and hash, solver id and version, protocol, runtime, numbl
-version, and machine. In-browser results can be rerun by any visitor on
-their own machine directly on the site.
+and added by pull request; the site reads that repository statically.
+Every result records its provenance: instance spec and hash, solver id
+and version, protocol, runtime, numbl version, and machine. Solvers
+included on the site can be rerun in the browser on the problem page to
+compare against the committed curves.
 
 ## Running benchmarks outside the browser
 
