@@ -4,11 +4,16 @@
 
 import { useMemo, useState } from "react";
 import type { Laplace2dInstance } from "../../problems/laplace2d/spec";
-import { exactU, vizGrid, VIZ_NGRID } from "../../problems/laplace2d/exact";
+import {
+  evalPoints,
+  exactU,
+  vizGrid,
+  VIZ_NGRID,
+} from "../../problems/laplace2d/exact";
 import { SOLVERS, getSolver } from "../../solvers";
 import { solutionInBrowser } from "../workerClient";
 import type { ResultPoint } from "../../harness/resultSchema";
-import { FieldView } from "./FieldView";
+import { FieldView, fieldAbsMax } from "./FieldView";
 
 function exactGridValues(inst: Laplace2dInstance): Float64Array {
   const { xs } = vizGrid(inst);
@@ -50,6 +55,16 @@ export function SolutionSection({ inst }: { inst: Laplace2dInstance }) {
 
   const solver = getSolver(solverId);
   const showsComputed = computed !== null && computed.solverId === solverId;
+
+  // One color scale shared by the exact and computed solution fields, set
+  // by the dynamic range of the exact solution; a computed field that
+  // exceeds it clips.
+  const sharedRange = useMemo(() => {
+    const vabs = fieldAbsMax(inst, exact);
+    return { lo: -vabs, hi: vabs };
+  }, [inst, exact]);
+
+  const marks = useMemo(() => evalPoints(inst), [inst]);
 
   async function compute() {
     setBusy(true);
@@ -105,16 +120,18 @@ export function SolutionSection({ inst }: { inst: Laplace2dInstance }) {
           inst={inst}
           values={exact}
           mode="diverging"
+          range={sharedRange}
           title="Exact solution"
-          caption="The manufactured harmonic function, sampled on the visualization grid."
+          caption="The exact solution on the visualization grid. The color scale is shared with the computed field."
         />
         {showsComputed && computed && (
           <FieldView
             inst={inst}
             values={computed.uGrid}
             mode="diverging"
+            range={sharedRange}
             title={`${solver.name}, n = ${computed.n}`}
-            caption={`Computed in this browser: rel max error ${computed.point.relMax.toExponential(2)}, solve ${(computed.point.solveSeconds * 1000).toPrecision(3)} ms.`}
+            caption={`Computed in this browser: rel max error ${computed.point.relMax.toExponential(2)} at the evaluation points, solve ${(computed.point.solveSeconds * 1000).toPrecision(3)} ms. Same color scale as the exact solution.`}
           />
         )}
         {showsComputed && errField && computed && (
@@ -122,8 +139,9 @@ export function SolutionSection({ inst }: { inst: Laplace2dInstance }) {
             inst={inst}
             values={errField}
             mode="logmag"
+            overlayPoints={marks}
             title="Pointwise error (log scale)"
-            caption="Absolute difference from the exact solution; the color scale spans 8 decades below the maximum."
+            caption="Absolute difference from the exact solution; the color scale spans 8 decades below the maximum. Dots mark the 65 evaluation points where the reported errors are measured."
           />
         )}
       </div>

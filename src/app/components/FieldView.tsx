@@ -14,10 +14,42 @@ export interface FieldViewProps {
   mode: "diverging" | "logmag";
   title: string;
   caption?: string;
+  /** Fixed color-scale range; when absent, the range comes from the data.
+   * For diverging mode this should be symmetric about zero. */
+  range?: { lo: number; hi: number };
+  /** Points drawn on top of the field (e.g. the evaluation points). */
+  overlayPoints?: { x: number; y: number }[];
 }
 
-export function FieldView({ inst, values, mode, title, caption }: FieldViewProps) {
+/** Max |v| over the grid points inside the domain, for building a shared
+ * diverging range across several fields. */
+export function fieldAbsMax(
+  inst: Laplace2dInstance,
+  values: Float64Array
+): number {
+  const { xs } = vizGrid(inst);
+  let m = 0;
+  for (let ix = 0; ix < VIZ_NGRID; ix++) {
+    for (let iy = 0; iy < VIZ_NGRID; iy++) {
+      if (!insideDomain(inst, xs[ix], xs[iy])) continue;
+      const v = values[ix * VIZ_NGRID + iy];
+      if (isFinite(v)) m = Math.max(m, Math.abs(v));
+    }
+  }
+  return m;
+}
+
+export function FieldView({
+  inst,
+  values,
+  mode,
+  title,
+  caption,
+  range,
+  overlayPoints,
+}: FieldViewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const overlayRef = useRef<HTMLCanvasElement>(null);
   const barRef = useRef<HTMLCanvasElement>(null);
   const rangeRef = useRef<HTMLDivElement>(null);
 
@@ -46,13 +78,17 @@ export function FieldView({ inst, values, mode, title, caption }: FieldViewProps
       let hi: number;
       let scale: (v: number) => number;
       if (mode === "diverging") {
-        const vabs = Math.max(Math.abs(vmin), Math.abs(vmax), 1e-300);
+        const vabs = range
+          ? Math.max(Math.abs(range.lo), Math.abs(range.hi), 1e-300)
+          : Math.max(Math.abs(vmin), Math.abs(vmax), 1e-300);
         lo = -vabs;
         hi = vabs;
         scale = (v) => v / vabs; // [-1, 1]
       } else {
-        hi = Math.max(vmax, 1e-300);
-        lo = Math.max(vmin, hi * 1e-8, 1e-300);
+        hi = range ? range.hi : Math.max(vmax, 1e-300);
+        lo = range
+          ? Math.max(range.lo, 1e-300)
+          : Math.max(vmin, hi * 1e-8, 1e-300);
         const llo = Math.log10(lo);
         const lhi = Math.log10(hi);
         scale = (v) =>
@@ -107,23 +143,67 @@ export function FieldView({ inst, values, mode, title, caption }: FieldViewProps
           mode === "logmag" ? v.toExponential(1) : v.toPrecision(3);
         rangeRef.current.textContent = `${fmt(lo)} … ${fmt(hi)}`;
       }
+
+      // overlay: marked points (crisp, at display resolution)
+      const overlay = overlayRef.current;
+      if (overlay) {
+        const disp = 300;
+        const dpr = window.devicePixelRatio || 1;
+        overlay.width = disp * dpr;
+        overlay.height = disp * dpr;
+        const octx = overlay.getContext("2d");
+        if (octx) {
+          octx.scale(dpr, dpr);
+          octx.clearRect(0, 0, disp, disp);
+          if (overlayPoints && overlayPoints.length > 0) {
+            const { R } = vizGrid(inst);
+            const tok = (name: string) =>
+              getComputedStyle(document.documentElement)
+                .getPropertyValue(name)
+                .trim();
+            octx.fillStyle = tok("--series-2");
+            octx.strokeStyle = tok("--surface");
+            octx.lineWidth = 1;
+            for (const p of overlayPoints) {
+              const px = ((p.x + R) / (2 * R)) * disp;
+              const py = disp - ((p.y + R) / (2 * R)) * disp;
+              octx.beginPath();
+              octx.arc(px, py, 2.2, 0, 2 * Math.PI);
+              octx.fill();
+              octx.stroke();
+            }
+          }
+        }
+      }
     };
 
     draw();
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     mq.addEventListener("change", draw);
     return () => mq.removeEventListener("change", draw);
-  }, [inst, values, mode]);
+  }, [inst, values, mode, range, overlayPoints]);
 
   return (
     <figure style={{ margin: 0 }}>
       <div className="small" style={{ fontWeight: 600, marginBottom: 4 }}>
         {title}
       </div>
-      <canvas
-        ref={canvasRef}
-        style={{ width: 300, height: 300, imageRendering: "auto" }}
-      />
+      <div style={{ position: "relative", width: 300, height: 300 }}>
+        <canvas
+          ref={canvasRef}
+          style={{ width: 300, height: 300, imageRendering: "auto" }}
+        />
+        <canvas
+          ref={overlayRef}
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: 300,
+            height: 300,
+            pointerEvents: "none",
+          }}
+        />
+      </div>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
         <canvas ref={barRef} style={{ width: 220, height: 10, borderRadius: 3 }} />
       </div>
