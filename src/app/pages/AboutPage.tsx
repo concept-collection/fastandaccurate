@@ -18,9 +18,11 @@ export function AboutPage() {
         points. A problem defines its own solver interface and a short list
         of official <strong>instances</strong> (parameter combinations) in a
         written specification, so every solver is compared on identical
-        inputs. The solvers on this site are MATLAB function files run by{" "}
-        <a href="https://numbl.org">numbl</a>, client side; the identical
-        harness runs from the command line.
+        inputs. Solvers are MATLAB function files. Most run via{" "}
+        <a href="https://numbl.org">numbl</a>, in the browser and from the
+        command line alike; some run only in real MATLAB through the command
+        line, and their results are marked as not reproducible in the
+        browser.
       </p>
 
       <h2>Measurement</h2>

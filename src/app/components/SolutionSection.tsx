@@ -33,10 +33,13 @@ interface Computed {
   point: ResultPoint;
 }
 
+// Only solvers that run in the browser can compute a field here.
+const BROWSER_SOLVERS = SOLVERS.filter((s) => s.runtime === "numbl");
+
 export function SolutionSection({ inst }: { inst: Laplace2dInstance }) {
-  const [solverId, setSolverId] = useState(SOLVERS[0].id);
+  const [solverId, setSolverId] = useState(BROWSER_SOLVERS[0].id);
   const [n, setN] = useState<number>(
-    SOLVERS[0].sweepN[Math.floor(SOLVERS[0].sweepN.length * 0.7)]
+    BROWSER_SOLVERS[0].sweepN[Math.floor(BROWSER_SOLVERS[0].sweepN.length * 0.7)]
   );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -94,7 +97,7 @@ export function SolutionSection({ inst }: { inst: Laplace2dInstance }) {
               setN(sw[Math.floor(sw.length * 0.7)]);
             }}
           >
-            {SOLVERS.map((s) => (
+            {BROWSER_SOLVERS.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name}
               </option>

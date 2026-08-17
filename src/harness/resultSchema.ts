@@ -15,10 +15,11 @@ export const RESULT_FORMAT = "fastandaccurate-result";
 export const RESULT_FORMAT_VERSION = 1;
 
 export interface ResultEnvironment {
-  kind: "browser" | "node";
-  /** User agent string (browser) or node version (node). */
+  kind: "browser" | "node" | "matlab";
+  /** User agent (browser), node version (node), or MATLAB version. */
   runtime: string;
-  numblVersion: string;
+  /** Absent for runs outside numbl (e.g. real MATLAB). */
+  numblVersion?: string;
   os?: string;
   cpu?: string;
   /** Free-text label a human recognizes ("office workstation"). */
@@ -90,6 +91,8 @@ export async function buildResultFile(opts: {
   environment: ResultEnvironment;
   repeats: number;
   points: ResultPoint[];
+  /** What measured the times (default numbl tic/toc). */
+  timer?: string;
 }): Promise<ResultFile> {
   return {
     format: RESULT_FORMAT,
@@ -104,7 +107,7 @@ export async function buildResultFile(opts: {
     protocol: {
       warmupRuns: 1,
       timedRuns: opts.repeats,
-      timer: "numbl tic/toc",
+      timer: opts.timer ?? "numbl tic/toc",
     },
     createdUtc: new Date().toISOString(),
     points: opts.points,

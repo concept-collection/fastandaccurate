@@ -8,12 +8,13 @@ function out = solver(prob, n)
 % panelized into n uniform 16th-order Gauss-Legendre chunks, chunkermat
 % assembles the system with high-order singular quadrature, the dense
 % system is solved directly, and chunkerkerneval evaluates the potential
-% with corrected quadrature for targets near the boundary. The package
-% is fetched by mip on first use.
+% with corrected quadrature for targets near the boundary.
+%
+% This solver runs in real MATLAB only: the command-line harness invokes
+% it through `matlab -batch` with chunkie on the path (fetched on first
+% use). It is not runnable in the browser.
 %
 % n : number of chunks (16 points each).
-
-mip load --install magland/magland/chunkie;
 
 chnkr = chunkerfuncuni(@(t) fcurve(t, prob), n);
 
@@ -41,9 +42,8 @@ end
 
 function u = eval_targets(chnkr, fkern, sigma, XY)
 % Direct (unaccelerated) evaluation, in blocks to bound memory. accel is
-% disabled because chunkie's FMM acceleration binds to the fmm2d
-% library, which is not available in this embedded numbl runtime; at
-% these sizes direct evaluation is cheap anyway.
+% disabled so that the FLAM/fmm2d submodules are not required; at these
+% sizes direct evaluation is cheap anyway.
 opts = struct();
 opts.accel = false;
 m = size(XY, 1);

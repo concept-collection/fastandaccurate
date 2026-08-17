@@ -45,6 +45,6 @@ export async function fetchCommittedResults(): Promise<ResultFile[]> {
 export function environmentLabel(r: ResultFile): string {
   const env = r.environment;
   if (env.machineLabel) return `${env.machineLabel} (${env.kind})`;
-  if (env.kind === "node") return `${env.cpu ?? "unknown cpu"} (node)`;
-  return "browser";
+  if (env.kind === "browser") return "browser";
+  return `${env.cpu ?? "unknown cpu"} (${env.kind})`;
 }

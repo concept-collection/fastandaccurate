@@ -13,11 +13,13 @@ problem-specified evaluation points. The central object is the
 resolution varies. No single ranking is presented; which curve wins can
 differ by accuracy regime, instance, and machine.
 
-Solvers are MATLAB function files run by [numbl](https://numbl.org)
-(MATLAB syntax in the browser and in node), so every run on this site
-happens client side, and the identical harness runs from the command
-line. Each problem defines its own interface and instances in a written
-specification; interfaces are per problem rather than shared.
+Solvers are MATLAB function files. Most run via
+[numbl](https://numbl.org) (MATLAB syntax in the browser and in node),
+both on the site and from the command line; some run only in real
+MATLAB through the command line, and their results are marked as not
+reproducible in the browser. Each problem defines its own interface and
+instances in a written specification; interfaces are per problem rather
+than shared.
 
 ## Problems
 

@@ -26,7 +26,6 @@ const base = {
 const solverSources: Record<string, MatlabSources> = {
   mfs: { ...base, solver: read("src/solvers/mfs/solver.m") },
   "nystrom-dlp": { ...base, solver: read("src/solvers/nystrom-dlp/solver.m") },
-  "chunkie-dlp": { ...base, solver: read("src/solvers/chunkie-dlp/solver.m") },
 };
 
 // Best relMax each solver must reach over its full sweep. On star-hard,
@@ -36,7 +35,6 @@ const solverSources: Record<string, MatlabSources> = {
 const mustReach: Record<string, Record<string, number>> = {
   mfs: { "disk-easy": 1e-12, "star-medium": 1e-12, "star-hard": 1e-2 },
   "nystrom-dlp": { "disk-easy": 1e-10, "star-medium": 1e-10, "star-hard": 1e-8 },
-  "chunkie-dlp": { "disk-easy": 1e-10, "star-medium": 1e-10, "star-hard": 1e-9 },
 };
 const mustNotReach: Record<string, Record<string, number>> = {
   mfs: { "star-hard": 1e-8 },
@@ -44,8 +42,10 @@ const mustNotReach: Record<string, Record<string, number>> = {
 
 let failures = 0;
 
+// MATLAB-runtime solvers are covered by test/matlab-test.ts, run locally
+// where MATLAB exists; this suite tests the numbl solvers.
 for (const inst of INSTANCES) {
-  for (const solver of SOLVERS) {
+  for (const solver of SOLVERS.filter((s) => s.runtime === "numbl")) {
     console.log(`\n== ${inst.id} / ${solver.id}`);
     console.log("   n     relMax       relL2        solve(s)  cold(s)");
     let best = Infinity;

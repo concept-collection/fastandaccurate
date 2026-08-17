@@ -17,6 +17,7 @@ import os from "os";
 import { INSTANCES, getInstance } from "../problems/laplace2d/spec";
 import { setNumblFileIO } from "../harness/numblRun";
 import { NodeFileIOAdapter } from "./nodeFileIO";
+import { ensureChunkie, matlabAvailable, runMatlabSweep } from "./matlabRun";
 
 setNumblFileIO((vfs) => new NodeFileIOAdapter(vfs));
 import { SOLVERS, getSolver, type SolverManifest } from "../solvers";
@@ -65,6 +66,20 @@ function environment(machineLabel: string | undefined, builtin: boolean): Result
     cpu: os.cpus()[0]?.model?.trim() ?? "unknown",
     machineLabel,
     browserReproducible: builtin,
+  };
+}
+
+function matlabEnvironment(
+  machineLabel: string | undefined,
+  matlabVersion: string
+): ResultEnvironment {
+  return {
+    kind: "matlab",
+    runtime: `MATLAB ${matlabVersion}`,
+    os: `${os.platform()} ${os.release()}`,
+    cpu: os.cpus()[0]?.model?.trim() ?? "unknown",
+    machineLabel,
+    browserReproducible: false,
   };
 }
 
@@ -127,6 +142,7 @@ async function runCommand(flags: Record<string, string>) {
       description: `custom solver from ${file}`,
       version: flags["solver-version"] ?? "0.0.0",
       backend: "cpu",
+      runtime: "numbl",
       sweepN: getSolver("nystrom-dlp").sweepN,
     };
     solverList = [
@@ -137,7 +153,18 @@ async function runCommand(flags: Record<string, string>) {
       },
     ];
   } else {
-    const wanted = flags.solver ? [getSolver(flags.solver)] : SOLVERS;
+    let wanted = flags.solver ? [getSolver(flags.solver)] : SOLVERS;
+    if (wanted.some((s) => s.runtime === "matlab") && !matlabAvailable()) {
+      if (flags.solver) {
+        throw new Error(
+          `${flags.solver} runs in real MATLAB, and no matlab was found on the PATH`
+        );
+      }
+      for (const s of wanted.filter((x) => x.runtime === "matlab")) {
+        console.log(`skipping ${s.id}: runs in real MATLAB, and no matlab was found on the PATH`);
+      }
+      wanted = wanted.filter((s) => s.runtime !== "matlab");
+    }
     solverList = wanted.map((manifest) => ({
       manifest,
       sources: { ...base, solver: readSrc(`solvers/${manifest.id}/solver.m`) },
@@ -152,19 +179,40 @@ async function runCommand(flags: Record<string, string>) {
     for (const { manifest, sources, source } of solverList) {
       console.log(`\n${inst.id} / ${manifest.id}`);
       console.log("   n     relMax      relL2       solve(s)");
-      const points = runSweep({
-        instance: inst,
-        solver: manifest,
-        sources,
-        repeats,
-        maxN,
-        onPoint: (p) => {
-          console.log(
-            `  ${String(p.n).padStart(4)}  ${p.relMax.toExponential(2)}  ` +
-              `${p.relL2.toExponential(2)}  ${p.solveSeconds.toFixed(4)}`
-          );
-        },
-      });
+      const printPoint = (p: { n: number; relMax: number; relL2: number; solveSeconds: number }) => {
+        console.log(
+          `  ${String(p.n).padStart(4)}  ${p.relMax.toExponential(2)}  ` +
+            `${p.relL2.toExponential(2)}  ${p.solveSeconds.toFixed(4)}`
+        );
+      };
+      let resultPoints;
+      let runEnv = env;
+      let timer: string | undefined;
+      if (manifest.runtime === "matlab") {
+        const setup = manifest.id === "chunkie-dlp" ? ensureChunkie() : [];
+        const ns = manifest.sweepN.filter((n) => maxN === undefined || n <= maxN);
+        const { points, matlabVersion } = runMatlabSweep({
+          instance: inst,
+          ns,
+          repeats,
+          sources,
+          setup,
+          onPoint: printPoint,
+        });
+        resultPoints = points;
+        runEnv = matlabEnvironment(flags.label, matlabVersion);
+        timer = "matlab tic/toc";
+      } else {
+        const points = runSweep({
+          instance: inst,
+          solver: manifest,
+          sources,
+          repeats,
+          maxN,
+          onPoint: printPoint,
+        });
+        resultPoints = points.map(toResultPoint);
+      }
       const result = await buildResultFile({
         instance: inst,
         solver: {
@@ -173,9 +221,10 @@ async function runCommand(flags: Record<string, string>) {
           backend: manifest.backend,
           source,
         },
-        environment: env,
+        environment: runEnv,
         repeats,
-        points: points.map(toResultPoint),
+        points: resultPoints,
+        timer,
       });
       const name = `laplace-dirichlet-2d.${inst.id}.${manifest.id}.json`;
       const path = join(outDir, name);

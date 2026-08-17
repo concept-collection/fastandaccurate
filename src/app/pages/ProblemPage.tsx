@@ -262,7 +262,10 @@ export function ProblemPage({ problemId }: { problemId: string }) {
             />
             <strong>{s.name}</strong>{" "}
             <span className="small muted">
-              {s.id} v{s.version} · {s.backend}
+              {s.id} v{s.version} · {s.backend} ·{" "}
+              {s.runtime === "matlab"
+                ? "runs in MATLAB via the command line"
+                : "runs via numbl in the browser and command line"}
             </span>
           </div>
           <p className="small" style={{ color: "var(--text-2)" }}>
@@ -315,13 +318,17 @@ export function ProblemPage({ problemId }: { problemId: string }) {
               />
               {s.name}
             </label>{" "}
-            <button
-              onClick={() => runSolver(s.id)}
-              disabled={running !== null}
-              title={`Run the full ${s.id} sweep on ${instanceId} in this browser`}
-            >
-              {running === s.id ? "running…" : "Run in this browser"}
-            </button>
+            {s.runtime === "numbl" ? (
+              <button
+                onClick={() => runSolver(s.id)}
+                disabled={running !== null}
+                title={`Run the full ${s.id} sweep on ${instanceId} in this browser`}
+              >
+                {running === s.id ? "running…" : "Run in this browser"}
+              </button>
+            ) : (
+              <span className="small muted">MATLAB only (via the CLI)</span>
+            )}
           </span>
         ))}
         <label>

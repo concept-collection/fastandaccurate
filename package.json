@@ -9,7 +9,8 @@
     "build:cli": "vite build --config vite.cli.config.ts && node scripts/pack-cli.mjs",
     "preview": "vite preview",
     "test": "tsx test/solver-test.ts",
-    "check-app": "node scripts/check-app.mjs"
+    "check-app": "node scripts/check-app.mjs",
+    "test:matlab": "tsx test/matlab-test.ts"
   },
   "dependencies": {
     "fflate": "^0.8.3",
