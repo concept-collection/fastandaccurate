@@ -22,26 +22,56 @@ export function boundaryPoint(inst: Laplace2dInstance, t: number) {
   return { x: r * Math.cos(t), y: r * Math.sin(t) };
 }
 
-/** The three exact-solution sources: boundary points at phi_j pushed a
+/** Boundary point at parameter phi pushed a distance d along the outward
+ * unit normal. */
+function pushedPoint(inst: Laplace2dInstance, phi: number, d: number) {
+  const { a, k } = inst;
+  const r = 1 + a * Math.cos(k * phi);
+  const dr = -a * k * Math.sin(k * phi);
+  const bx = r * Math.cos(phi);
+  const by = r * Math.sin(phi);
+  const dx = dr * Math.cos(phi) - r * Math.sin(phi);
+  const dy = dr * Math.sin(phi) + r * Math.cos(phi);
+  const sp = Math.hypot(dx, dy);
+  return { x: bx + (d * dy) / sp, y: by - (d * dx) / sp };
+}
+
+/** The three log-family sources: boundary points at phi_j pushed a
  * distance d along the outward normal, strengths [1.0, -0.6, 0.8]. */
 export function sources(inst: Laplace2dInstance): Source[] {
-  const { a, k, d } = inst;
   const strengths = [1.0, -0.6, 0.8];
   return strengths.map((c, j) => {
-    const phi = (2 * Math.PI * j) / 3 + 0.4;
-    const r = 1 + a * Math.cos(k * phi);
-    const dr = -a * k * Math.sin(k * phi);
-    const bx = r * Math.cos(phi);
-    const by = r * Math.sin(phi);
-    const dx = dr * Math.cos(phi) - r * Math.sin(phi);
-    const dy = dr * Math.sin(phi) + r * Math.cos(phi);
-    const sp = Math.hypot(dx, dy);
-    return { x: bx + (d * dy) / sp, y: by - (d * dx) / sp, c };
+    const p = pushedPoint(inst, (2 * Math.PI * j) / 3 + 0.4, inst.d);
+    return { ...p, c };
   });
 }
 
-/** Exact solution u(x, y) = sum_j c_j log|x - s_j|. */
+/** The branch-point family's singularity: the boundary point at
+ * parameter 0.4 pushed d along the outward normal, with its polar
+ * angle (the branch cut runs radially outward from it). */
+export function branchPoint(inst: Laplace2dInstance) {
+  const p = pushedPoint(inst, 0.4, inst.d);
+  return { ...p, theta0: Math.atan2(p.y, p.x) };
+}
+
+/** The exact solution's singular points, for display. */
+export function singularities(inst: Laplace2dInstance): { x: number; y: number }[] {
+  return inst.family === "branch-point" ? [branchPoint(inst)] : sources(inst);
+}
+
+/** Exact solution. Log family: u = sum_j c_j log|x - s_j|. Branch
+ * family: u = Re sqrt(w), w = -(z - z0) e^{-i theta0}, evaluated in
+ * real arithmetic as sqrt((|w| + Re w)/2); the branch cut is the radial
+ * ray from z0 away from the origin, outside the domain. */
 export function exactU(inst: Laplace2dInstance, x: number, y: number): number {
+  if (inst.family === "branch-point") {
+    const b = branchPoint(inst);
+    const dx = x - b.x;
+    const dy = y - b.y;
+    const wre = -(dx * Math.cos(b.theta0) + dy * Math.sin(b.theta0));
+    const wim = -(dy * Math.cos(b.theta0) - dx * Math.sin(b.theta0));
+    return Math.sqrt((Math.hypot(wre, wim) + wre) / 2);
+  }
   let u = 0;
   for (const s of sources(inst)) {
     u += s.c * 0.5 * Math.log((x - s.x) ** 2 + (y - s.y) ** 2);

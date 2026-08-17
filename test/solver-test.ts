@@ -16,6 +16,7 @@ const read = (p: string) => readFileSync(join(root, p), "utf-8");
 const base = {
   buildProblem: read("src/problems/laplace2d/matlab/build_problem.m"),
   bdata: read("src/problems/laplace2d/matlab/laplace2d_bdata.m"),
+  bdataBranch: read("src/problems/laplace2d/matlab/laplace2d_bdata_branch.m"),
 };
 const solverSources: Record<string, MatlabSources> = {
   mfs: { ...base, solver: read("src/solvers/mfs/solver.m") },
@@ -27,8 +28,18 @@ const solverSources: Record<string, MatlabSources> = {
 // beyond the data's singularities there, and if it suddenly reached high
 // accuracy the instance would no longer be testing what the spec says.
 const mustReach: Record<string, Record<string, number>> = {
-  mfs: { "disk-easy": 1e-12, "star-medium": 1e-12, "star-hard": 1e-2 },
-  "nystrom-dlp": { "disk-easy": 1e-10, "star-medium": 1e-10, "star-hard": 1e-8 },
+  mfs: {
+    "disk-easy": 1e-12,
+    "star-medium": 1e-12,
+    "star-hard": 1e-2,
+    "star-branch": 1e-10,
+  },
+  "nystrom-dlp": {
+    "disk-easy": 1e-10,
+    "star-medium": 1e-10,
+    "star-hard": 1e-8,
+    "star-branch": 1e-10,
+  },
 };
 const mustNotReach: Record<string, Record<string, number>> = {
   mfs: { "star-hard": 1e-8 },

@@ -110,6 +110,7 @@ async function runCommand(flags: Record<string, string>) {
   const base = {
     buildProblem: readSrc("problems/laplace2d/matlab/build_problem.m"),
     bdata: readSrc("problems/laplace2d/matlab/laplace2d_bdata.m"),
+    bdataBranch: readSrc("problems/laplace2d/matlab/laplace2d_bdata_branch.m"),
   };
 
   let solverList: { manifest: SolverManifest; sources: MatlabSources; source: string }[];

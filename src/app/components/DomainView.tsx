@@ -5,8 +5,9 @@ import { useEffect, useRef } from "react";
 import type { Laplace2dInstance } from "../../problems/laplace2d/spec";
 import {
   boundaryPoint,
+  branchPoint,
   evalPoints,
-  sources,
+  singularities,
 } from "../../problems/laplace2d/exact";
 
 function token(name: string): string {
@@ -59,10 +60,10 @@ export function DomainView({ inst }: { inst: Laplace2dInstance }) {
         ctx.fill();
       }
 
-      // sources
+      // the exact solution's singularities
       ctx.strokeStyle = token("--series-2");
       ctx.lineWidth = 2;
-      for (const src of sources(inst)) {
+      for (const src of singularities(inst)) {
         const cx = X(src.x);
         const cy = Y(src.y);
         ctx.beginPath();
@@ -71,6 +72,22 @@ export function DomainView({ inst }: { inst: Laplace2dInstance }) {
         ctx.moveTo(cx - 5, cy + 5);
         ctx.lineTo(cx + 5, cy - 5);
         ctx.stroke();
+      }
+
+      // branch family: dashed segment along the cut (radially outward)
+      if (inst.family === "branch-point") {
+        const b = branchPoint(inst);
+        ctx.strokeStyle = token("--text-3");
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 3]);
+        ctx.beginPath();
+        ctx.moveTo(X(b.x), Y(b.y));
+        ctx.lineTo(
+          X(b.x + 0.3 * Math.cos(b.theta0)),
+          Y(b.y + 0.3 * Math.sin(b.theta0))
+        );
+        ctx.stroke();
+        ctx.setLineDash([]);
       }
     };
     draw();
@@ -84,8 +101,12 @@ export function DomainView({ inst }: { inst: Laplace2dInstance }) {
       <canvas ref={canvasRef} />
       <figcaption className="field-caption" style={{ maxWidth: 360 }}>
         The domain, the evaluation points where solutions are scored
-        (dots), and the exact solution's sources a distance {inst.d} outside
-        the boundary (crosses).
+        (dots), and the exact solution's{" "}
+        {inst.family === "branch-point"
+          ? "branch point a distance " + inst.d + " outside the boundary " +
+            "(cross), with its cut running radially outward (dashed)"
+          : "sources a distance " + inst.d + " outside the boundary (crosses)"}
+        .
       </figcaption>
     </figure>
   );

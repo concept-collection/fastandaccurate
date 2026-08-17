@@ -17,6 +17,7 @@ export function matlabBase() {
   return {
     buildProblem: get("../problems/laplace2d/matlab/build_problem.m"),
     bdata: get("../problems/laplace2d/matlab/laplace2d_bdata.m"),
+    bdataBranch: get("../problems/laplace2d/matlab/laplace2d_bdata_branch.m"),
   };
 }
 
