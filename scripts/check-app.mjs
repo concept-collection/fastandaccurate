@@ -48,9 +48,12 @@ try {
     if (msg.type() === "error") {
       const text = msg.text();
       const url = msg.location()?.url ?? "";
-      // The committed-results fetch may 404 before the results repo has
-      // content; the app reports that in the UI by design.
-      if (url.includes("raw.githubusercontent.com")) return;
+      // The committed-results fetch may fail offline, or while the
+      // results site is unavailable; the app reports that in the UI by
+      // design. CORS complaints name the URL in the message text rather
+      // than in the location, so both are checked.
+      const RESULTS_HOST = "github.io/fastandaccurate-results";
+      if (url.includes(RESULTS_HOST) || text.includes(RESULTS_HOST)) return;
       // numbl logs its linear-algebra bridge choice at error level.
       if (text.includes("using bridge:")) return;
       errors.push(`${text} (${url})`);

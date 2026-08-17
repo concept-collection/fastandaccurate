@@ -9,8 +9,15 @@ import {
 
 export const RESULTS_REPO_URL =
   "https://github.com/concept-collection/fastandaccurate-results";
-const RESULTS_RAW =
-  "https://raw.githubusercontent.com/concept-collection/fastandaccurate-results/main";
+// The results repo is served by its own GitHub Pages (branch-based, main
+// at /), which is CDN-backed and CORS-open. raw.githubusercontent.com
+// would also work but rate-limits hard enough to break page loads.
+// In dev the vite server serves the sibling checkout instead (see
+// localResultsPlugin in vite.config.ts), so local work sees local
+// results and makes no network requests for them.
+const RESULTS_BASE = import.meta.env.DEV
+  ? "/local-results"
+  : "https://concept-collection.github.io/fastandaccurate-results";
 
 export function isResultFile(x: unknown): x is ResultFile {
   const r = x as ResultFile;
@@ -26,13 +33,13 @@ export function isResultFile(x: unknown): x is ResultFile {
 }
 
 export async function fetchCommittedResults(): Promise<ResultFile[]> {
-  const idxResp = await fetch(`${RESULTS_RAW}/index.json`, { cache: "no-cache" });
+  const idxResp = await fetch(`${RESULTS_BASE}/index.json`, { cache: "no-cache" });
   if (!idxResp.ok) throw new Error(`index.json: HTTP ${idxResp.status}`);
   const idx = (await idxResp.json()) as { files?: string[] };
   const files = idx.files ?? [];
   const results = await Promise.all(
     files.map(async (f) => {
-      const resp = await fetch(`${RESULTS_RAW}/${f}`, { cache: "no-cache" });
+      const resp = await fetch(`${RESULTS_BASE}/${f}`, { cache: "no-cache" });
       if (!resp.ok) return null;
       const data: unknown = await resp.json();
       return isResultFile(data) ? data : null;
