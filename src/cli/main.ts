@@ -15,6 +15,10 @@ import { dirname, join, resolve } from "path";
 import { fileURLToPath } from "url";
 import os from "os";
 import { INSTANCES, getInstance } from "../problems/laplace2d/spec";
+import { setNumblFileIO } from "../harness/numblRun";
+import { NodeFileIOAdapter } from "./nodeFileIO";
+
+setNumblFileIO((vfs) => new NodeFileIOAdapter(vfs));
 import { SOLVERS, getSolver, type SolverManifest } from "../solvers";
 import { runSweep } from "../harness/sweep";
 import type { MatlabSources } from "../harness/runner";
@@ -110,7 +114,6 @@ async function runCommand(flags: Record<string, string>) {
   const base = {
     buildProblem: readSrc("problems/laplace2d/matlab/build_problem.m"),
     bdata: readSrc("problems/laplace2d/matlab/laplace2d_bdata.m"),
-    bdataBranch: readSrc("problems/laplace2d/matlab/laplace2d_bdata_branch.m"),
   };
 
   let solverList: { manifest: SolverManifest; sources: MatlabSources; source: string }[];

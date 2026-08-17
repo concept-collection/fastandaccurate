@@ -236,8 +236,6 @@ export function ProblemPage({ problemId }: { problemId: string }) {
                 <td>{inst.k}</td>
                 <th className="left">d</th>
                 <td>{inst.d}</td>
-                <th className="left">data</th>
-                <td className="left">{inst.family}</td>
               </tr>
             </tbody>
           </table>

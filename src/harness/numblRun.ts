@@ -1,11 +1,67 @@
 // Thin wrapper around numbl's synchronous executeCode for harness runs.
-// Works identically in a browser worker and in node: no file I/O adapters
-// are attached, so the MATLAB side must communicate through workspace
-// variables, which we read back from result.variableValues.
+// Works identically in a browser worker and in node. Plain solvers need
+// no file system at all: the MATLAB side communicates through workspace
+// variables, read back from result.variableValues.
+//
+// Solvers that begin with `mip load --install <pkg>` additionally need
+// the mip package manager, which the wrapper bootstraps on first use: a
+// persistent virtual file system holds /system, the mip core is fetched
+// once and unzipped into it, and mip's own downloads go through the
+// platform's websave. In a browser worker that is numbl's
+// BrowserFileIOAdapter (synchronous XHR, GitHub release URLs routed
+// through numbl's CORS proxy); the node CLI substitutes a curl-backed
+// adapter via setNumblFileIO. Installed packages persist for the
+// lifetime of the worker or process, so a sweep pays the download once.
 
-import { executeCode } from "numbl";
+import {
+  executeCode,
+  VirtualFileSystem,
+  BrowserFileIOAdapter,
+  BrowserSystemAdapter,
+} from "numbl";
+import { unzipSync } from "fflate";
 
 const PROJ = "/fastandaccurate";
+
+const MIP_MHL_URL =
+  "https://github.com/mip-org/mip-core/releases/download/mip-numbl/mip-numbl-any.mhl";
+const MIP_SYSTEM_PREFIX = "/system/mip/packages/gh/mip-org/core/mip/";
+const MIP_SEARCH_PATH = MIP_SYSTEM_PREFIX + "mip";
+
+type FileIOFactory = (vfs: VirtualFileSystem) => BrowserFileIOAdapter;
+
+let makeFileIO: FileIOFactory = (vfs) => new BrowserFileIOAdapter(vfs);
+
+/** Substitute the platform's file I/O adapter (the node CLI installs a
+ * curl-backed one; the browser default needs nothing). Must be called
+ * before the first mip-using run. */
+export function setNumblFileIO(factory: FileIOFactory) {
+  makeFileIO = factory;
+}
+
+let vfs: VirtualFileSystem | null = null;
+let fileIO: BrowserFileIOAdapter | null = null;
+let system: BrowserSystemAdapter | null = null;
+let mipReady = false;
+
+function ensureMip() {
+  if (mipReady && vfs && fileIO && system) return;
+  vfs = new VirtualFileSystem();
+  fileIO = makeFileIO(vfs);
+  system = new BrowserSystemAdapter(vfs);
+  const tmp = "/tmp/mip-core.mhl";
+  fileIO.websave(MIP_MHL_URL, tmp);
+  const entries = unzipSync(vfs.readFile(vfs.normalizePath(tmp)));
+  for (const [name, content] of Object.entries(entries)) {
+    if (name.endsWith("/")) continue;
+    vfs.writeFile(MIP_SYSTEM_PREFIX + name, content);
+  }
+  mipReady = true;
+}
+
+function usesMip(sources: string[]): boolean {
+  return sources.some((s) => /^\s*mip\s+load\b/m.test(s));
+}
 
 export interface NumblRunResult {
   /** Console output of the run. */
@@ -30,6 +86,8 @@ export function runNumblScript(
     source,
   }));
   const outputs: string[] = [];
+  const mip = usesMip([mainSource, ...Object.values(files)]);
+  if (mip) ensureMip();
   const result = executeCode(
     mainSource,
     {
@@ -37,10 +95,11 @@ export function runNumblScript(
       displayResults: false,
       optimization: "1",
       implicitCwdPath: null,
+      ...(mip && fileIO && system ? { fileIO, system } : {}),
     },
     workspaceFiles,
     `${PROJ}/main.m`,
-    [PROJ]
+    mip ? [PROJ, MIP_SEARCH_PATH] : [PROJ]
   );
   const vars: Record<string, Float64Array> = {};
   for (const name of wantVars) {

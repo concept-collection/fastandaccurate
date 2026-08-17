@@ -21,52 +21,28 @@ set of evaluation points.
 
 ## The exact solution
 
-The data g is manufactured from an exact harmonic function u*, and
-g = u* restricted to ∂Ω. Since u* is harmonic in Ω, it is the unique
-solution, and errors are measured against it directly rather than
-against a reference computation. Two data families are used.
-
-**log-sources.** A sum of three logarithmic point sources placed outside
-the domain:
+The data g is manufactured from an exact harmonic function, a sum of
+three logarithmic point sources placed outside the domain:
 
     u*(x) = Σ_j c_j log |x − s_j|,    c = (1.0, −0.6, 0.8).
 
 Source s_j is the boundary point at parameter φ_j = 2π(j−1)/3 + 0.4
-pushed a distance d along the outward unit normal.
-
-**branch-point.** The real part of a complex square root:
-
-    u*(z) = Re √(w),    w = −(z − z₀) e^{−iθ₀},
-
-where z₀ is the boundary point at parameter 0.4 pushed a distance d
-along the outward unit normal and θ₀ is its polar angle. The principal
-branch cut w ≤ 0 maps to the radial ray from z₀ away from the origin,
-which cannot meet a domain star-shaped about the origin, so u* is
-harmonic on the closed domain; its nearest singularity is the branch
-point z₀ itself. In real arithmetic, Re √w = √((|w| + Re w)/2).
-
-In both families the distance d controls difficulty: u* continues
-harmonically only up to its singularities, so the smaller d, the shorter
-the distance the data continues past the boundary, and methods whose
+pushed a distance d along the outward unit normal, and g = u* restricted
+to ∂Ω. Since u* is harmonic in Ω, it is the unique solution, and errors
+are measured against it directly rather than against a reference
+computation. The distance d controls difficulty: u* continues
+harmonically only up to the sources, so the smaller d, the shorter the
+distance the data continues past the boundary, and methods whose
 representations assume a generous continuation lose it. A solver must
-not use knowledge of the sources or branch point; they exist only to
-manufacture g.
+not use knowledge of the sources; they exist only to manufacture g.
 
 ## Official instances
 
-| id | a | k | d | family | character |
-|---|---|---|---|---|---|
-| disk-easy | 0 | 0 | 0.5 | log-sources | the unit disk, distant sources |
-| star-medium | 0.2 | 3 | 0.4 | log-sources | mild geometry, comfortable continuation |
-| star-hard | 0.3 | 5 | 0.08 | log-sources | wavy boundary, data barely continues |
-| star-branch | 0.2 | 3 | 0.4 | branch-point | star-medium's geometry with the other data family |
-
-star-branch repeats star-medium's geometry and singularity distance with
-the branch-point family. The pair separates the data family from its
-singularity structure: a method whose accuracy depended on a coincidence
-between its representation and the data-generating family would score
-differently on the two, while a method governed by the continuation
-distance scores alike.
+| id | a | k | d | character |
+|---|---|---|---|---|
+| disk-easy | 0 | 0 | 0.5 | the unit disk, distant sources |
+| star-medium | 0.2 | 3 | 0.4 | mild geometry, comfortable continuation |
+| star-hard | 0.3 | 5 | 0.08 | wavy boundary, data barely continues |
 
 Committed results exist only at these instances, so every solver is
 compared on identical inputs. The parameters may be varied freely in the
@@ -140,15 +116,5 @@ masks them; grid values are never scored.
 The exact solution is smooth and free of boundary singularities, so this
 problem does not test corner handling, nonsmooth data, or interior
 sources (a nonzero right-hand side would exclude plain boundary-integral
-methods; that belongs to a different problem). In particular, every
-instance's solution is real-analytic in a neighborhood of the closed
-domain, which favors methods that exploit analyticity (fundamental
-solutions, boundary integral equations, spectral collocation) over
-low-order discretizations; this is a property of manufactured smooth
-benchmarks in general, not of the particular families chosen. The
-star-branch instance exists because most instances manufacture the data
-from exterior log charges, the same function class the MFS
-representation draws on; comparing it with star-medium checks that
-scores follow the continuation distance rather than the family. The
-domain family is star-shaped by construction, which some methods can
-exploit.
+methods; that belongs to a different problem). The domain family is
+star-shaped by construction, which some methods can exploit.

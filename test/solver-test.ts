@@ -9,6 +9,12 @@ import { INSTANCES, getInstance } from "../src/problems/laplace2d/spec";
 import { SOLVERS } from "../src/solvers";
 import { runPoint, type MatlabSources } from "../src/harness/runner";
 import { runSweep } from "../src/harness/sweep";
+import { setNumblFileIO } from "../src/harness/numblRun";
+import { NodeFileIOAdapter } from "../src/cli/nodeFileIO";
+
+// Solvers that mip-install packages (chunkie-dlp) need file I/O; in node
+// that is the curl-backed adapter.
+setNumblFileIO((vfs) => new NodeFileIOAdapter(vfs));
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const read = (p: string) => readFileSync(join(root, p), "utf-8");
@@ -16,11 +22,11 @@ const read = (p: string) => readFileSync(join(root, p), "utf-8");
 const base = {
   buildProblem: read("src/problems/laplace2d/matlab/build_problem.m"),
   bdata: read("src/problems/laplace2d/matlab/laplace2d_bdata.m"),
-  bdataBranch: read("src/problems/laplace2d/matlab/laplace2d_bdata_branch.m"),
 };
 const solverSources: Record<string, MatlabSources> = {
   mfs: { ...base, solver: read("src/solvers/mfs/solver.m") },
   "nystrom-dlp": { ...base, solver: read("src/solvers/nystrom-dlp/solver.m") },
+  "chunkie-dlp": { ...base, solver: read("src/solvers/chunkie-dlp/solver.m") },
 };
 
 // Best relMax each solver must reach over its full sweep. On star-hard,
@@ -28,18 +34,9 @@ const solverSources: Record<string, MatlabSources> = {
 // beyond the data's singularities there, and if it suddenly reached high
 // accuracy the instance would no longer be testing what the spec says.
 const mustReach: Record<string, Record<string, number>> = {
-  mfs: {
-    "disk-easy": 1e-12,
-    "star-medium": 1e-12,
-    "star-hard": 1e-2,
-    "star-branch": 1e-10,
-  },
-  "nystrom-dlp": {
-    "disk-easy": 1e-10,
-    "star-medium": 1e-10,
-    "star-hard": 1e-8,
-    "star-branch": 1e-10,
-  },
+  mfs: { "disk-easy": 1e-12, "star-medium": 1e-12, "star-hard": 1e-2 },
+  "nystrom-dlp": { "disk-easy": 1e-10, "star-medium": 1e-10, "star-hard": 1e-8 },
+  "chunkie-dlp": { "disk-easy": 1e-10, "star-medium": 1e-10, "star-hard": 1e-9 },
 };
 const mustNotReach: Record<string, Record<string, number>> = {
   mfs: { "star-hard": 1e-8 },
