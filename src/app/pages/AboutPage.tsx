@@ -11,18 +11,16 @@ export function AboutPage() {
       </p>
       <h1>About</h1>
       <p>
-        A limitation of most solver comparisons is that they fix a
-        discretization, which quietly decides much of the outcome. Here each{" "}
-        <strong>problem</strong> is posed in the continuum, with an exact or
-        highly accurate reference solution; a solver chooses its own
-        discretization and is scored at problem-specified evaluation points.
-        Each problem defines its own interface and a short list of official{" "}
-        <strong>instances</strong> (parameter combinations) in a written
-        specification, so every solver is compared on identical inputs.
-        Solvers are MATLAB function files run by{" "}
-        <a href="https://numbl.org">numbl</a> (MATLAB syntax in the browser
-        and in node), so everything on this site runs client side, and the
-        identical harness runs from the command line.
+        fastandaccurate benchmarks PDE solvers on speed and accuracy
+        together. Each <strong>problem</strong> is posed in the continuum,
+        with an exact or highly accurate reference solution; a solver chooses
+        its own discretization and is scored at problem-specified evaluation
+        points. A problem defines its own solver interface and a short list
+        of official <strong>instances</strong> (parameter combinations) in a
+        written specification, so every solver is compared on identical
+        inputs. The solvers on this site are MATLAB function files run by{" "}
+        <a href="https://numbl.org">numbl</a>, client side; the identical
+        harness runs from the command line.
       </p>
 
       <h2>Measurement</h2>
@@ -33,26 +31,22 @@ export function AboutPage() {
         points defined per instance, relative to the reference solution.
         Timing is one untimed warmup run (which absorbs JIT compilation),
         then the median of repeated timed runs; a run includes the solver's
-        own discretization, assembly, solve, and evaluation. There is
-        deliberately no single ranking: which curve is best can differ by
-        accuracy regime, instance, and machine, and the site presents the
-        curves rather than a verdict. Times from different machines are not
-        comparable; every result records its environment, and the charts
-        label curves by machine.
+        own discretization, assembly, solve, and evaluation.
       </p>
 
       <h2>Results and provenance</h2>
       <p>
         Results are JSON files in{" "}
         <a href={RESULTS_REPO_URL}>fastandaccurate-results</a>, added by pull
-        request; the site reads that repository statically, so there is no
-        database and no server. Every result carries its provenance: the
-        instance spec and its hash, solver id and version, timing protocol,
-        runtime, numbl version, and machine. Results produced by in-browser
-        solvers can be rerun by any visitor on their own machine, directly on
-        the problem page. Results from solvers outside the repository (and,
-        in the future, from other languages and hardware) enter the same way
-        and are marked as not reproducible in the browser.
+        request; the site reads that repository statically. Every result
+        carries its provenance: the instance spec and its hash, solver id and
+        version, timing protocol, runtime, numbl version, and machine.
+        Result files are produced by the command line; solvers included on
+        the site can also be rerun in the browser, directly on the problem
+        page, to compare against the committed curves. Results from solvers
+        outside the repository (and, in the future, from other languages and
+        hardware) enter the same way and are marked as not reproducible in
+        the browser.
       </p>
 
       <h2>Running outside the browser</h2>

@@ -9,9 +9,9 @@ export function HomePage() {
         Each problem is posed in the continuum with an exact or highly
         accurate reference solution; a solver chooses its own discretization
         and is compared by <em>work-precision curves</em>, error against
-        compute time. Results can be reproduced in the browser and submitted
-        by pull request. See <a href="#/about">About</a> for how measurement
-        and submission work.
+        compute time. Results are submitted by pull request, and solvers
+        included on the site can be rerun in the browser for comparison. See{" "}
+        <a href="#/about">About</a> for how measurement and submission work.
       </p>
 
       <h2>Problems</h2>

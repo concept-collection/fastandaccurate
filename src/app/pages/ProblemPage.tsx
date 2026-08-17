@@ -4,12 +4,8 @@ import {
   getInstance,
   PROBLEM_ID,
 } from "../../problems/laplace2d/spec";
-import { SOLVERS, getSolver } from "../../solvers";
-import {
-  buildResultFile,
-  type ResultFile,
-  type ResultPoint,
-} from "../../harness/resultSchema";
+import { SOLVERS } from "../../solvers";
+import type { ResultFile, ResultPoint } from "../../harness/resultSchema";
 import {
   environmentLabel,
   fetchCommittedResults,
@@ -48,9 +44,15 @@ export function ProblemPage({ problemId }: { problemId: string }) {
   const [running, setRunning] = useState<string | null>(null);
   const [runStatus, setRunStatus] = useState<string | null>(null);
   const [repeats, setRepeats] = useState(3);
-  const [machineLabel, setMachineLabel] = useState("");
+  const [copied, setCopied] = useState(false);
 
   const inst = getInstance(instanceId);
+  const visibleSolverList = SOLVERS.filter((s) => !hidden.has(s.id));
+  const cliCommand =
+    `npx https://concept-collection.github.io/fastandaccurate/cli.tgz?v=${__BUILD_ID__} ` +
+    `run --instance ${instanceId}` +
+    (visibleSolverList.length === 1 ? ` --solver ${visibleSolverList[0].id}` : "") +
+    ` --label "my machine"`;
 
   useEffect(() => {
     fetchCommittedResults()
@@ -145,36 +147,6 @@ export function ProblemPage({ problemId }: { problemId: string }) {
     } finally {
       setRunning(null);
     }
-  }
-
-  async function downloadRun(run: LocalRun) {
-    const manifest = getSolver(run.solverId);
-    const result = await buildResultFile({
-      instance: getInstance(run.instanceId),
-      solver: {
-        id: manifest.id,
-        version: manifest.version,
-        backend: manifest.backend,
-        source: "builtin",
-      },
-      environment: {
-        kind: "browser",
-        runtime: navigator.userAgent,
-        numblVersion: __NUMBL_VERSION__,
-        machineLabel: machineLabel || undefined,
-        browserReproducible: true,
-      },
-      repeats: run.repeats,
-      points: run.points,
-    });
-    const blob = new Blob([JSON.stringify(result, null, 2) + "\n"], {
-      type: "application/json",
-    });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `${PROBLEM_ID}.${run.instanceId}.${run.solverId}.browser.json`;
-    a.click();
-    URL.revokeObjectURL(a.href);
   }
 
   function loadFiles(files: FileList | null) {
@@ -325,23 +297,34 @@ export function ProblemPage({ problemId }: { problemId: string }) {
         </label>
       </div>
       {runStatus && <p className="small muted">{runStatus}</p>}
+      <h3>Run this on your machine</h3>
+      <p className="small muted" style={{ maxWidth: 640 }}>
+        Browser runs are for comparison only; result files are produced
+        outside the browser. This command runs the{" "}
+        {visibleSolverList.length === 1
+          ? `${visibleSolverList[0].id} sweep`
+          : "same sweeps"}{" "}
+        on the <code>{instanceId}</code> instance (node 20 or newer) and
+        writes result JSON files, which can be loaded below to see them on
+        this chart, and submitted by pull request (see{" "}
+        <a href="#/about">About</a>).
+      </p>
+      <div className="row" style={{ alignItems: "flex-start", gap: 10 }}>
+        <pre style={{ margin: 0, flex: "1 1 420px", overflowX: "auto" }}>
+          {cliCommand}
+        </pre>
+        <button
+          onClick={() => {
+            navigator.clipboard.writeText(cliCommand).then(() => {
+              setCopied(true);
+              setTimeout(() => setCopied(false), 1500);
+            });
+          }}
+        >
+          {copied ? "copied" : "Copy"}
+        </button>
+      </div>
       <div className="row" style={{ marginTop: 10, alignItems: "center" }}>
-        <label className="small">
-          machine label{" "}
-          <input
-            type="text"
-            placeholder="e.g. office workstation"
-            value={machineLabel}
-            onChange={(e) => setMachineLabel(e.target.value)}
-          />
-        </label>
-        {localRuns
-          .filter((r) => r.done && r.instanceId === instanceId)
-          .map((r) => (
-            <button key={r.key} onClick={() => downloadRun(r)}>
-              Download {r.solverId} result JSON
-            </button>
-          ))}
         <label className="small">
           load result file{" "}
           <input
@@ -363,9 +346,9 @@ export function ProblemPage({ problemId }: { problemId: string }) {
       <SolutionSection inst={inst} />
 
       <p className="small muted" style={{ marginTop: "2.2rem" }}>
-        The same sweeps run outside the browser with the command line, and
-        both browser and command-line results are submitted by pull request
-        to the <a href={RESULTS_REPO_URL}>results repository</a>; see{" "}
+        Result files are produced with the command line (above) and
+        submitted by pull request to the{" "}
+        <a href={RESULTS_REPO_URL}>results repository</a>; see{" "}
         <a href="#/about">About</a>.
       </p>
     </>
