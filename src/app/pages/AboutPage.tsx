@@ -31,11 +31,16 @@ export function AboutPage() {
         error against compute time, traced out as the solver's resolution
         parameter varies. Errors are measured at a fixed set of evaluation
         points defined per instance, relative to the reference solution.
-        Timing is two untimed warmup runs followed by several timed runs, of
-        which the fastest is reported: interference only ever adds time, so
-        the fastest run is the least contaminated estimate of the solver's
-        own cost. A run includes the solver's own discretization, assembly,
-        solve, and evaluation. Curves are traced in order of the solver's
+        Timing is two untimed warmup runs followed by timed runs, of which
+        the fastest is reported: interference only ever adds time, so the
+        fastest run is the least contaminated estimate of the solver's own
+        cost. How many timed runs is not fixed but set by a time budget: a
+        point keeps repeating until it has used about half a second, with a
+        floor of five runs and a cap of fifty, so a solve that takes a
+        fraction of a millisecond is sampled fifty times rather than five,
+        and its reported time stops depending on what else the machine
+        happened to be doing. A run includes the solver's own
+        discretization, assembly, solve, and evaluation. Curves are traced in order of the solver's
         resolution parameter, and may double back in time, since a solver's
         cost need not increase with resolution.
       </p>
@@ -63,12 +68,21 @@ export function AboutPage() {
       <p>
         This runs the standard sweeps and writes one result JSON per instance
         and solver. Useful flags: <code>--instance &lt;id&gt;</code>,{" "}
-        <code>--solver &lt;id&gt;</code>, <code>--repeats N</code>,{" "}
+        <code>--solver &lt;id&gt;</code>, <code>--repeats N</code> (the
+        minimum timed runs per point), <code>--time-budget S</code>,{" "}
         <code>--max-n N</code>, <code>--out dir</code>. To benchmark your own
         solver, point the harness at a MATLAB function file implementing the
         problem's solver interface:
       </p>
       <pre>{`npx ${cliUrl} run --solver-file my_method.m --solver-id my-method`}</pre>
+      <p>
+        The solvers that run only in real MATLAB need <code>matlab</code> on
+        the PATH; the run skips them when it is absent.{" "}
+        <code>chunkie-dlp</code> needs one thing more, the{" "}
+        <a href="https://mip.sh">mip</a> package manager on the MATLAB path,
+        from which the harness installs chunkie and its FLAM and fmm2d
+        dependencies on first use.
+      </p>
       <p className="small muted">
         Note that npx caches by the exact URL string; the <code>?v=</code>{" "}
         suffix above ties the command to the current deployment so a later

@@ -7,6 +7,7 @@ import { getSolver } from "../solvers";
 import { runSweep } from "../harness/sweep";
 import { runPoint } from "../harness/runner";
 import { toResultPoint, type ResultPoint } from "../harness/resultSchema";
+import { DEFAULT_TIMING, type TimingPolicy } from "../harness/timing";
 import { matlabBase, solverSource } from "./matlabSources";
 
 export interface SweepRequest {
@@ -14,7 +15,7 @@ export interface SweepRequest {
   id: number;
   instanceId: string;
   solverId: string;
-  repeats: number;
+  timing: TimingPolicy;
 }
 
 export interface SolutionRequest {
@@ -46,7 +47,7 @@ self.onmessage = (e: MessageEvent<WorkerRequest>) => {
         instance: getInstance(msg.instanceId),
         solver: getSolver(msg.solverId),
         sources: { ...matlabBase(), solver: solverSource(msg.solverId) },
-        repeats: msg.repeats,
+        timing: msg.timing,
         onPoint: (p, index, total) => {
           const resp: WorkerResponse = {
             type: "point",
@@ -68,7 +69,7 @@ self.onmessage = (e: MessageEvent<WorkerRequest>) => {
       const p = runPoint({
         instance: getInstance(msg.instanceId),
         n: msg.n,
-        repeats: 1,
+        timing: { ...DEFAULT_TIMING, minTimedRuns: 1, timeBudgetSeconds: 0 },
         wantGrid: true,
         sources: { ...matlabBase(), solver: solverSource(msg.solverId) },
       });

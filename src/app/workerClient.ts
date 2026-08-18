@@ -3,6 +3,7 @@
 
 import type { WorkerRequest, WorkerResponse } from "./worker";
 import type { ResultPoint } from "../harness/resultSchema";
+import type { TimingPolicy } from "../harness/timing";
 
 type Pending = {
   onPoint?: (point: ResultPoint, index: number, total: number) => void;
@@ -50,13 +51,13 @@ function post(req: WorkerRequest) {
 export function sweepInBrowser(
   instanceId: string,
   solverId: string,
-  repeats: number,
+  timing: TimingPolicy,
   onPoint: (point: ResultPoint, index: number, total: number) => void
 ): Promise<ResultPoint[]> {
   const id = nextId++;
   return new Promise((resolve, reject) => {
     pending.set(id, { onPoint, resolve: resolve as never, reject });
-    post({ type: "sweep", id, instanceId, solverId, repeats });
+    post({ type: "sweep", id, instanceId, solverId, timing });
   });
 }
 

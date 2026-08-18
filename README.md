@@ -17,9 +17,11 @@ Solvers are MATLAB function files. Most run via
 [numbl](https://numbl.org) (MATLAB syntax in the browser and in node),
 both on the site and from the command line; some run only in real
 MATLAB through the command line, and their results are marked as not
-reproducible in the browser. Each problem defines its own interface and
-instances in a written specification; interfaces are per problem rather
-than shared.
+reproducible in the browser. Two registry entries may share one file:
+the `-mat` solvers are their numbl twin's `solver.m` run in real MATLAB,
+so that pair of curves measures the runtime rather than the method. Each
+problem defines its own interface and instances in a written
+specification; interfaces are per problem rather than shared.
 
 ## Problems
 
@@ -49,9 +51,20 @@ npx https://concept-collection.github.io/fastandaccurate/cli.tgz run --label "my
 Note that npx caches by the exact URL string; the site offers the URL
 with a `?v=<commit>` suffix so each deployment is a fresh install.
 
-Useful flags: `--instance <id>`, `--solver <id>`, `--repeats N`,
-`--max-n N`, `--out dir`. To benchmark your own solver, point the
-harness at a MATLAB function file implementing the problem's interface:
+The solvers whose runtime is `matlab` need `matlab` on the PATH; the run
+skips them when it is absent. `chunkie-dlp` needs one thing more, the
+[mip](https://mip.sh) package manager on the MATLAB path, from which the
+harness installs chunkie and its FLAM and fmm2d dependencies on first
+use. Taking chunkie from mip rather than from a source clone is what
+makes its accelerated code path available without a Fortran compiler on
+the machine, since the mip fmm2d package ships a compiled MEX binary per
+platform.
+
+Useful flags: `--instance <id>`, `--solver <id>`, `--repeats N` (the
+minimum timed runs per point; each point is then repeated until it has
+used the `--time-budget`, 0.5 s by default), `--max-n N`, `--out dir`.
+To benchmark your own solver, point the harness at a MATLAB function file
+implementing the problem's interface:
 
 ```
 npx https://concept-collection.github.io/fastandaccurate/cli.tgz run \

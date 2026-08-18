@@ -5,7 +5,8 @@
 //   fastandaccurate list
 //   fastandaccurate run [--instance <id>] [--solver <id>]
 //                       [--solver-file f.m --solver-id name]
-//                       [--repeats N] [--max-n N] [--label "text"]
+//                       [--repeats N] [--time-budget S] [--max-n N]
+//                       [--label "text"]
 //                       [--out dir]
 //
 // In development: npx tsx src/cli/main.ts run ...
@@ -17,11 +18,18 @@ import os from "os";
 import { INSTANCES, getInstance } from "../problems/laplace2d/spec";
 import { setNumblFileIO } from "../harness/numblRun";
 import { NodeFileIOAdapter } from "./nodeFileIO";
-import { ensureChunkie, matlabAvailable, runMatlabSweep } from "./matlabRun";
+import { matlabAvailable, matlabSetup, runMatlabSweep } from "./matlabRun";
 
 setNumblFileIO((vfs) => new NodeFileIOAdapter(vfs));
-import { SOLVERS, getSolver, type SolverManifest } from "../solvers";
+import {
+  SOLVERS,
+  getSolver,
+  solverSourceDir,
+  sweepNFor,
+  type SolverManifest,
+} from "../solvers";
 import { runSweep } from "../harness/sweep";
+import { DEFAULT_TIMING, type TimingPolicy } from "../harness/timing";
 import type { MatlabSources } from "../harness/runner";
 import {
   buildResultFile,
@@ -110,16 +118,29 @@ function listCommand() {
   console.log("Problem: laplace-dirichlet-2d (v1)\n");
   console.log("Instances:");
   for (const inst of INSTANCES) {
-    console.log(`  ${inst.id.padEnd(14)} ${inst.label}`);
+    console.log(`  ${inst.id.padEnd(16)} ${inst.label}`);
   }
   console.log("\nSolvers:");
   for (const s of SOLVERS) {
-    console.log(`  ${s.id.padEnd(14)} ${s.name} (v${s.version}, ${s.backend})`);
+    console.log(
+      `  ${s.id.padEnd(16)} ${s.name} ` +
+        `(v${s.version}, ${s.backend}, ${s.runtime})`
+    );
   }
 }
 
 async function runCommand(flags: Record<string, string>) {
-  const repeats = flags.repeats ? parseInt(flags.repeats, 10) : 5;
+  const timing: TimingPolicy = {
+    minTimedRuns: flags.repeats
+      ? parseInt(flags.repeats, 10)
+      : DEFAULT_TIMING.minTimedRuns,
+    timeBudgetSeconds: flags["time-budget"]
+      ? parseFloat(flags["time-budget"])
+      : DEFAULT_TIMING.timeBudgetSeconds,
+    maxTimedRuns: flags["max-repeats"]
+      ? parseInt(flags["max-repeats"], 10)
+      : DEFAULT_TIMING.maxTimedRuns,
+  };
   const maxN = flags["max-n"] ? parseInt(flags["max-n"], 10) : undefined;
   const outDir = resolve(flags.out ?? "fastandaccurate-results-out");
   const instances = flags.instance
@@ -143,7 +164,11 @@ async function runCommand(flags: Record<string, string>) {
       version: flags["solver-version"] ?? "0.0.0",
       backend: "cpu",
       runtime: "numbl",
+      // A submitted solver sweeps the same resolutions as the reference
+      // Nystrom solver, per-instance lists included, so its curve lands on
+      // the same points as the committed ones.
       sweepN: getSolver("nystrom-dlp").sweepN,
+      sweepNByInstance: getSolver("nystrom-dlp").sweepNByInstance,
     };
     solverList = [
       {
@@ -167,7 +192,10 @@ async function runCommand(flags: Record<string, string>) {
     }
     solverList = wanted.map((manifest) => ({
       manifest,
-      sources: { ...base, solver: readSrc(`solvers/${manifest.id}/solver.m`) },
+      sources: {
+        ...base,
+        solver: readSrc(`solvers/${solverSourceDir(manifest)}/solver.m`),
+      },
       source: "builtin",
     }));
   }
@@ -189,12 +217,14 @@ async function runCommand(flags: Record<string, string>) {
       let runEnv = env;
       let timer: string | undefined;
       if (manifest.runtime === "matlab") {
-        const setup = manifest.id === "chunkie-dlp" ? ensureChunkie() : [];
-        const ns = manifest.sweepN.filter((n) => maxN === undefined || n <= maxN);
+        const setup = matlabSetup(manifest.id);
+        const ns = sweepNFor(manifest, inst.id).filter(
+          (n) => maxN === undefined || n <= maxN
+        );
         const { points, matlabVersion } = runMatlabSweep({
           instance: inst,
           ns,
-          repeats,
+          timing,
           sources,
           setup,
           onPoint: printPoint,
@@ -207,7 +237,7 @@ async function runCommand(flags: Record<string, string>) {
           instance: inst,
           solver: manifest,
           sources,
-          repeats,
+          timing,
           maxN,
           onPoint: printPoint,
         });
@@ -222,7 +252,7 @@ async function runCommand(flags: Record<string, string>) {
           source,
         },
         environment: runEnv,
-        repeats,
+        timing,
         points: resultPoints,
         timer,
       });
@@ -259,7 +289,11 @@ async function main() {
         "  --solver-file <f.m>  A custom solver file (requires --solver-id)",
         "  --solver-id <name>   Identifier for the custom solver",
         "  --solver-version <v> Version string for the custom solver",
-        "  --repeats <N>        Timed repeats per point (default 5)",
+        "  --repeats <N>        Minimum timed runs per point (default 5)",
+        "  --time-budget <s>    Keep timing a point until it has used this",
+        "                       many seconds (default 0.5), which is what",
+        "                       makes cheap points reproducible",
+        "  --max-repeats <N>    Cap on timed runs per point (default 50)",
         "  --max-n <N>          Restrict the sweep to n <= N",
         "  --label <text>       Free-text machine label recorded in results",
         "  --out <dir>          Output directory (default fastandaccurate-results-out)",

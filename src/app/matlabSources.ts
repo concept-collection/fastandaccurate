@@ -1,5 +1,8 @@
 // The MATLAB sources, inlined into the bundle by vite. Used by the worker
-// (and only there; the node CLI reads the same files from disk).
+// and by the problem page's source listing; the node CLI reads the same
+// files from disk.
+
+import { getSolver, solverSourceDir } from "../solvers";
 
 const files = import.meta.glob("../{problems,solvers}/**/*.m", {
   query: "?raw",
@@ -20,6 +23,8 @@ export function matlabBase() {
   };
 }
 
+/** The solver.m of a registry solver, resolved through its manifest so
+ * that entries sharing a file (mfs and mfs-mat) read the one source. */
 export function solverSource(solverId: string): string {
-  return get(`../solvers/${solverId}/solver.m`);
+  return get(`../solvers/${solverSourceDir(getSolver(solverId))}/solver.m`);
 }

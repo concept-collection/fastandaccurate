@@ -10,7 +10,7 @@ import {
   vizGrid,
   VIZ_NGRID,
 } from "../../problems/laplace2d/exact";
-import { SOLVERS, getSolver } from "../../solvers";
+import { SOLVERS, getSolver, sweepNFor } from "../../solvers";
 import { solutionInBrowser } from "../workerClient";
 import type { ResultPoint } from "../../harness/resultSchema";
 import { FieldView, fieldAbsMax } from "./FieldView";
@@ -70,12 +70,19 @@ export function SolutionSection({ inst }: { inst: Laplace2dInstance }) {
 
   const marks = useMemo(() => evalPoints(inst), [inst]);
 
+  // The resolutions offered depend on the instance as well as the solver,
+  // since a harder geometry sweeps a different range. If the instance
+  // changes under a selected n that its list does not contain, fall back
+  // to a resolution partway up the new list.
+  const ns = useMemo(() => sweepNFor(solver, inst.id), [solver, inst.id]);
+  const nSel = ns.includes(n) ? n : ns[Math.floor(ns.length * 0.7)];
+
   async function compute() {
     setBusy(true);
     setError(null);
     try {
-      const { point, uGrid } = await solutionInBrowser(inst.id, solverId, n);
-      setComputed({ solverId, n, uGrid, point });
+      const { point, uGrid } = await solutionInBrowser(inst.id, solverId, nSel);
+      setComputed({ solverId, n: nSel, uGrid, point });
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -93,7 +100,7 @@ export function SolutionSection({ inst }: { inst: Laplace2dInstance }) {
             onChange={(e) => {
               const id = e.target.value;
               setSolverId(id);
-              const sw = getSolver(id).sweepN;
+              const sw = sweepNFor(getSolver(id), inst.id);
               setN(sw[Math.floor(sw.length * 0.7)]);
             }}
           >
@@ -106,8 +113,8 @@ export function SolutionSection({ inst }: { inst: Laplace2dInstance }) {
         </label>
         <label>
           n{" "}
-          <select value={n} onChange={(e) => setN(parseInt(e.target.value, 10))}>
-            {solver.sweepN.map((v) => (
+          <select value={nSel} onChange={(e) => setN(parseInt(e.target.value, 10))}>
+            {ns.map((v) => (
               <option key={v} value={v}>
                 {v}
               </option>

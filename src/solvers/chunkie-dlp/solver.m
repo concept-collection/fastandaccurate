@@ -11,8 +11,8 @@ function out = solver(prob, n)
 % with corrected quadrature for targets near the boundary.
 %
 % This solver runs in real MATLAB only: the command-line harness invokes
-% it through `matlab -batch` with chunkie on the path (fetched on first
-% use). It is not runnable in the browser.
+% it through `matlab -batch`, having put chunkie on the path with
+% `mip load --install chunkie`. It is not runnable in the browser.
 %
 % n : number of chunks (16 points each).
 
@@ -41,19 +41,12 @@ end
 end
 
 function u = eval_targets(chnkr, fkern, sigma, XY)
-% Direct (unaccelerated) evaluation, in blocks to bound memory. accel is
-% disabled so that the FLAM/fmm2d submodules are not required; at these
-% sizes direct evaluation is cheap anyway.
-opts = struct();
-opts.accel = false;
-m = size(XY, 1);
-u = zeros(m, 1);
-B = 2000;
-for i0 = 1:B:m
-  i1 = min(i0 + B - 1, m);
-  ub = chunkerkerneval(chnkr, fkern, sigma, XY(i0:i1, :).', opts);
-  u(i0:i1) = ub(:);
-end
+% Evaluation with chunkie's own defaults, which means its FMM
+% acceleration of the smooth part (opts.accel, true unless overridden)
+% wherever the point counts make that worth doing. The mip fmm2d package
+% supplies the compiled binary this needs.
+u = chunkerkerneval(chnkr, fkern, sigma, XY.');
+u = u(:);
 end
 
 function [r, d, d2] = fcurve(t, prob)

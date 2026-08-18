@@ -3,7 +3,7 @@
 // implementations of these simple formulas check each other: a solver can
 // only reach high accuracy if both agree.
 
-import type { Laplace2dInstance } from "./spec";
+import { hasCorners, hasNearBoundary, type Laplace2dInstance } from "./spec";
 
 export interface Source {
   x: number;
@@ -11,9 +11,59 @@ export interface Source {
   c: number;
 }
 
-/** Boundary radius r(t) = 1 + a cos(k t). */
+/** Boundary radius: r(t) = 1 + a cos(k t) for the star family, and
+ * r(t) = (cos^p t + sin^p t)^(-1/p) for the rounded square, which traces
+ * the superellipse |x|^p + |y|^p = 1. Written through a logarithm because
+ * cos^p t underflows for p in the hundreds. */
 export function boundaryR(inst: Laplace2dInstance, t: number): number {
+  if (inst.shape === "rounded-square") {
+    const p = inst.p as number;
+    return Math.exp(-Math.log(Math.cos(t) ** p + Math.sin(t) ** p) / p);
+  }
   return 1 + inst.a * Math.cos(inst.k * t);
+}
+
+/** dr/dt of the boundary radius. Only the ratio f'/f enters, which keeps
+ * the rounded-square case away from the underflow in f itself. */
+export function boundaryRD(inst: Laplace2dInstance, t: number): number {
+  if (inst.shape === "rounded-square") {
+    const p = inst.p as number;
+    const c = Math.cos(t);
+    const sn = Math.sin(t);
+    const f = c ** p + sn ** p;
+    const fp = p * (sn ** (p - 1) * c - c ** (p - 1) * sn);
+    return (-boundaryR(inst, t) / p) * (fp / f);
+  }
+  return -inst.a * inst.k * Math.sin(inst.k * t);
+}
+
+/** The largest radius the boundary reaches, which sets the view extent
+ * and the visualization grid. */
+export function maxRadius(inst: Laplace2dInstance): number {
+  if (inst.shape === "rounded-square") return boundaryR(inst, Math.PI / 4);
+  return 1 + Math.abs(inst.a);
+}
+
+/** Angles of the corners, for instances that have them: the four
+ * diagonals of the rounded square. */
+export function cornerAngles(inst: Laplace2dInstance): number[] {
+  if (!hasCorners(inst)) return [];
+  return [0, 1, 2, 3].map((j) => Math.PI / 4 + (j * Math.PI) / 2);
+}
+
+/** Distances inside the boundary of the near-field evaluation points. The
+ * same four distances serve the near-corner set of an instance with
+ * corners and the near-boundary set of an instance that carries one: the
+ * smallest is a third of the corner radius at p = 100, and about half a
+ * node spacing at the resolutions the sweeps reach. */
+export const NEAR_DELTAS = [0.005, 0.01, 0.02, 0.05];
+
+/** Boundary parameters of the near-boundary evaluation points: eight
+ * around the curve, offset so that they fall at no special phase of a lobe
+ * pattern. Empty on an instance without the set. */
+export function nearBoundaryParams(inst: Laplace2dInstance): number[] {
+  if (!hasNearBoundary(inst)) return [];
+  return Array.from({ length: 8 }, (_, j) => (2 * Math.PI * j) / 8 + 0.07);
 }
 
 /** Boundary point at parameter t. */
@@ -22,15 +72,32 @@ export function boundaryPoint(inst: Laplace2dInstance, t: number) {
   return { x: r * Math.cos(t), y: r * Math.sin(t) };
 }
 
+/** The point a distance delta inside the boundary along the inward unit
+ * normal at parameter t. Since delta stays below the smallest radius of
+ * curvature on the instances that use this, the distance from the point to
+ * the curve is exactly delta. */
+export function inwardPoint(inst: Laplace2dInstance, t: number, delta: number) {
+  const r = boundaryR(inst, t);
+  const dr = boundaryRD(inst, t);
+  const dx = dr * Math.cos(t) - r * Math.sin(t);
+  const dy = dr * Math.sin(t) + r * Math.cos(t);
+  const sp = Math.hypot(dx, dy);
+  // The outward unit normal of the counterclockwise curve is (y', -x')/|x'|.
+  return {
+    x: r * Math.cos(t) - (delta * dy) / sp,
+    y: r * Math.sin(t) + (delta * dx) / sp,
+  };
+}
+
 /** The three exact-solution sources: boundary points at phi_j pushed a
  * distance d along the outward normal, strengths [1.0, -0.6, 0.8]. */
 export function sources(inst: Laplace2dInstance): Source[] {
-  const { a, k, d } = inst;
+  const { d } = inst;
   const strengths = [1.0, -0.6, 0.8];
   return strengths.map((c, j) => {
     const phi = (2 * Math.PI * j) / 3 + 0.4;
-    const r = 1 + a * Math.cos(k * phi);
-    const dr = -a * k * Math.sin(k * phi);
+    const r = boundaryR(inst, phi);
+    const dr = boundaryRD(inst, phi);
     const bx = r * Math.cos(phi);
     const by = r * Math.sin(phi);
     const dx = dr * Math.cos(phi) - r * Math.sin(phi);
@@ -49,9 +116,14 @@ export function exactU(inst: Laplace2dInstance, x: number, y: number): number {
   return u;
 }
 
-/** The 289 evaluation points: 32 rays, radial fractions 0.1..0.9, plus
- * the origin. Order matches build_problem.m: radius outer, angle inner,
- * origin last. */
+/** The evaluation points: 32 rays, radial fractions 0.1..0.9, plus the
+ * origin (289 points); on an instance with corners a further four points
+ * per corner just inside the boundary along its diagonal (305 in all); and
+ * on an instance carrying the near-boundary set four points per parameter
+ * along the inward normal (321 in all). Order matches build_problem.m:
+ * radius outer, angle inner, origin last, then the near-corner points with
+ * the corner index outer and the distance inner, then the near-boundary
+ * points with the parameter outer and the distance inner. */
 export function evalPoints(inst: Laplace2dInstance): { x: number; y: number }[] {
   const rho = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9];
   const pts: { x: number; y: number }[] = [];
@@ -63,6 +135,17 @@ export function evalPoints(inst: Laplace2dInstance): { x: number; y: number }[] 
     }
   }
   pts.push({ x: 0, y: 0 });
+  for (const th of cornerAngles(inst)) {
+    const rc = boundaryR(inst, th);
+    for (const delta of NEAR_DELTAS) {
+      pts.push({ x: (rc - delta) * Math.cos(th), y: (rc - delta) * Math.sin(th) });
+    }
+  }
+  for (const t of nearBoundaryParams(inst)) {
+    for (const delta of NEAR_DELTAS) {
+      pts.push(inwardPoint(inst, t, delta));
+    }
+  }
   return pts;
 }
 
@@ -75,13 +158,13 @@ export function exactAtEvalPoints(inst: Laplace2dInstance): Float64Array {
 }
 
 /** The visualization grid: ngrid x ngrid points over [-R, R]^2 with
- * R = 1.05 (1 + |a|). Flat index p = ix * ngrid + iy with x = xs[ix],
+ * R = 1.05 max_t r(t). Flat index p = ix * ngrid + iy with x = xs[ix],
  * y = xs[iy] (y varies fastest), matching build_problem.m's meshgrid
  * column order. */
 export const VIZ_NGRID = 200;
 
 export function vizGrid(inst: Laplace2dInstance) {
-  const R = 1.05 * (1 + Math.abs(inst.a));
+  const R = 1.05 * maxRadius(inst);
   const xs = new Float64Array(VIZ_NGRID);
   for (let i = 0; i < VIZ_NGRID; i++) {
     xs[i] = -R + (2 * R * i) / (VIZ_NGRID - 1);

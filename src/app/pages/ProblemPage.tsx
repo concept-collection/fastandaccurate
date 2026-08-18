@@ -5,7 +5,7 @@ import {
   getInstance,
   PROBLEM_ID,
 } from "../../problems/laplace2d/spec";
-import { SOLVERS } from "../../solvers";
+import { SOLVERS, solverSourceDir } from "../../solvers";
 import type { ResultFile, ResultPoint } from "../../harness/resultSchema";
 import {
   environmentLabel,
@@ -14,6 +14,7 @@ import {
 } from "../results";
 import { solverColorVar } from "../colors";
 import { sweepInBrowser } from "../workerClient";
+import { DEFAULT_TIMING } from "../../harness/timing";
 import { solverSource } from "../matlabSources";
 import {
   WorkPrecisionChart,
@@ -30,7 +31,7 @@ interface LocalRun {
   key: string;
   solverId: string;
   instanceId: string;
-  repeats: number;
+  minTimedRuns: number;
   points: ResultPoint[];
   done: boolean;
 }
@@ -44,7 +45,7 @@ export function ProblemPage({ problemId }: { problemId: string }) {
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [running, setRunning] = useState<string | null>(null);
   const [runStatus, setRunStatus] = useState<string | null>(null);
-  const [repeats, setRepeats] = useState(3);
+  const [minRuns, setMinRuns] = useState(DEFAULT_TIMING.minTimedRuns);
   const [copied, setCopied] = useState(false);
 
   const inst = getInstance(instanceId);
@@ -118,14 +119,14 @@ export function ProblemPage({ problemId }: { problemId: string }) {
       ...rs.filter(
         (r) => !(r.solverId === solverId && r.instanceId === instanceId)
       ),
-      { key, solverId, instanceId, repeats, points: [], done: false },
+      { key, solverId, instanceId, minTimedRuns: minRuns, points: [], done: false },
     ]);
     setRunning(solverId);
     try {
       const points = await sweepInBrowser(
         instanceId,
         solverId,
-        repeats,
+        { ...DEFAULT_TIMING, minTimedRuns: minRuns },
         (point, index, total) => {
           setRunStatus(
             `${solverId} on ${instanceId}: point ${index + 1}/${total} (n = ${point.n}) — rel max error ${point.relMax.toExponential(2)}`
@@ -195,8 +196,11 @@ export function ProblemPage({ problemId }: { problemId: string }) {
         Interior Dirichlet Laplace problem on a star-shaped 2D domain
       </p>
       <p>
-        Solve Δu = 0 on the domain with boundary r(θ) = 1 + a·cos(kθ), with
-        Dirichlet data u = g on the boundary. The data comes from an exact
+        Solve Δu = 0 on the domain, with Dirichlet data u = g on the
+        boundary. The boundary is r(θ) = 1 + a·cos(kθ) on most instances,
+        and on <code>square-corners</code> the superellipse
+        |x|^p + |y|^p = 1, a square whose corners are rounded to a radius
+        of about 1.4/p. The data comes from an exact
         harmonic function, a sum of three logarithmic point sources placed a
         distance d outside the boundary, so errors are measured against the
         true solution rather than a reference computation. The distance d
@@ -205,7 +209,11 @@ export function ProblemPage({ problemId }: { problemId: string }) {
         representations assume that continuation lose it. A solver receives
         the curve (with derivatives), the boundary data as a function of the
         boundary parameter, and the evaluation points, and returns solution
-        values at those points. The precise statement, solver interface, and
+        values at those points. Those points are the same 289 on most
+        instances; <code>square-corners</code> adds sixteen inside its
+        corners and <code>star-nearfield</code> thirty-two along the inward
+        normal, as close as 0.005 to the boundary, where a quadrature rule
+        with no near-field correction stops converging. The precise statement, solver interface, and
         timing protocol are in the <a href={SPEC_URL}>specification</a>.
       </p>
       <div className="row" style={{ marginTop: 14 }}>
@@ -231,10 +239,21 @@ export function ProblemPage({ problemId }: { problemId: string }) {
           <table className="data">
             <tbody>
               <tr>
-                <th className="left">a</th>
-                <td>{inst.a}</td>
-                <th className="left">k</th>
-                <td>{inst.k}</td>
+                {inst.shape === "rounded-square" ? (
+                  <>
+                    <th className="left">p</th>
+                    <td>{inst.p}</td>
+                    <th className="left">corners</th>
+                    <td>4</td>
+                  </>
+                ) : (
+                  <>
+                    <th className="left">a</th>
+                    <td>{inst.a}</td>
+                    <th className="left">k</th>
+                    <td>{inst.k}</td>
+                  </>
+                )}
                 <th className="left">d</th>
                 <td>{inst.d}</td>
               </tr>
@@ -247,8 +266,11 @@ export function ProblemPage({ problemId }: { problemId: string }) {
       <h2>Solvers</h2>
       <p className="small muted" style={{ maxWidth: 640 }}>
         Each solver is a MATLAB function file implementing the interface in
-        the <a href={SPEC_URL}>specification</a>; the same file runs in the
-        browser via numbl and from the command line.
+        the <a href={SPEC_URL}>specification</a>. Most run through numbl, in
+        the browser and from the command line alike; the rest run only in
+        real MATLAB, through the command line. The <code>-mat</code> entries
+        are their numbl twin's file run that way, so each such pair measures
+        the runtime rather than the method.
       </p>
       {SOLVERS.map((s) => (
         <div
@@ -267,6 +289,7 @@ export function ProblemPage({ problemId }: { problemId: string }) {
               {s.runtime === "matlab"
                 ? "runs in MATLAB via the command line"
                 : "runs via numbl in the browser and command line"}
+              {s.sourceDir ? ` · same solver.m as ${s.sourceDir}` : ""}
             </span>
           </div>
           <p className="small" style={{ color: "var(--text-2)" }}>
@@ -282,7 +305,7 @@ export function ProblemPage({ problemId }: { problemId: string }) {
           </details>
           <a
             className="small"
-            href={`${REPO_URL}/blob/main/src/solvers/${s.id}/solver.m`}
+            href={`${REPO_URL}/blob/main/src/solvers/${solverSourceDir(s)}/solver.m`}
           >
             view on GitHub
           </a>
@@ -332,13 +355,20 @@ export function ProblemPage({ problemId }: { problemId: string }) {
             )}
           </span>
         ))}
-        <label>
-          repeats{" "}
+        <label
+          title={
+            `Each point is timed at least this many times, then repeated ` +
+            `until it has used ${DEFAULT_TIMING.timeBudgetSeconds} s or ` +
+            `${DEFAULT_TIMING.maxTimedRuns} runs, and the fastest run is ` +
+            `reported.`
+          }
+        >
+          min timed runs{" "}
           <select
-            value={repeats}
-            onChange={(e) => setRepeats(parseInt(e.target.value, 10))}
+            value={minRuns}
+            onChange={(e) => setMinRuns(parseInt(e.target.value, 10))}
           >
-            {[1, 3, 5].map((r) => (
+            {[1, 3, 5, 10].map((r) => (
               <option key={r} value={r}>
                 {r}
               </option>

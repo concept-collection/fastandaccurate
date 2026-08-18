@@ -9,10 +9,13 @@ function out = solver(prob, n)
 % W is discretized with the periodic trapezoid rule at n equispaced
 % parameter nodes; the kernel is smooth on a smooth curve, with the
 % diagonal limit -kappa(t) |x'(t)| / (4 pi). Convergence is geometric,
-% at a rate set by how far the data g continues analytically. Accuracy
-% of the evaluated potential degrades for targets very close to the
-% boundary (the close-evaluation problem); the evaluation points of
-% this problem stay a modest distance inside.
+% at a rate set by how far the data g continues analytically. No
+% correction is applied for targets close to the boundary, so the error
+% of the evaluated potential at a target a distance delta inside behaves
+% like exp(-2 pi delta / h) in the node spacing h (the close-evaluation
+% problem). On most instances the evaluation points stay a modest
+% distance inside and this costs nothing; on star-nearfield, whose
+% closest target is 0.005 in, it is what limits the solver.
 %
 % n : number of boundary quadrature nodes.
 

@@ -10,6 +10,7 @@ import {
   type Laplace2dInstance,
 } from "../problems/laplace2d/spec";
 import type { RunPoint } from "./runner";
+import type { TimingPolicy } from "./timing";
 
 export const RESULT_FORMAT = "fastandaccurate-result";
 export const RESULT_FORMAT_VERSION = 1;
@@ -57,10 +58,19 @@ export interface ResultFile {
   environment: ResultEnvironment;
   protocol: {
     warmupRuns: number;
-    timedRuns: number;
+    /** The adaptive timed-run policy: at least minTimedRuns runs, then as
+     * many more as fit in timeBudgetSeconds, never past maxTimedRuns. How
+     * many a given point actually ran is the length of its
+     * solveSecondsAll. */
+    minTimedRuns: number;
+    timeBudgetSeconds: number;
+    maxTimedRuns: number;
     /** Which statistic of the timed runs is reported as solveSeconds. */
     statistic: "min";
     timer: string;
+    /** Results written before the adaptive policy carry a fixed count
+     * here instead of the three fields above. */
+    timedRuns?: number;
   };
   createdUtc: string;
   points: ResultPoint[];
@@ -92,7 +102,7 @@ export async function buildResultFile(opts: {
   instance: Laplace2dInstance;
   solver: { id: string; version: string; backend: "cpu" | "gpu"; source: string };
   environment: ResultEnvironment;
-  repeats: number;
+  timing: TimingPolicy;
   points: ResultPoint[];
   /** What measured the times (default numbl tic/toc). */
   timer?: string;
@@ -109,7 +119,9 @@ export async function buildResultFile(opts: {
     environment: opts.environment,
     protocol: {
       warmupRuns: 2,
-      timedRuns: opts.repeats,
+      minTimedRuns: opts.timing.minTimedRuns,
+      timeBudgetSeconds: opts.timing.timeBudgetSeconds,
+      maxTimedRuns: opts.timing.maxTimedRuns,
       statistic: "min",
       timer: opts.timer ?? "numbl tic/toc",
     },

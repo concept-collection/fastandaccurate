@@ -6,6 +6,7 @@ import type { Laplace2dInstance } from "../../problems/laplace2d/spec";
 import {
   boundaryPoint,
   evalPoints,
+  maxRadius,
   sources,
 } from "../../problems/laplace2d/exact";
 
@@ -15,6 +16,9 @@ function token(name: string): string {
 
 export function DomainView({ inst }: { inst: Laplace2dInstance }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  // The count varies by instance: 289 normally, and more where a
+  // near-corner or near-boundary set is added.
+  const nEval = evalPoints(inst).length;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -31,15 +35,16 @@ export function DomainView({ inst }: { inst: Laplace2dInstance }) {
       ctx.scale(dpr, dpr);
       ctx.clearRect(0, 0, size, size);
 
-      const extent = 1 + Math.abs(inst.a) + inst.d + 0.25;
+      const extent = maxRadius(inst) + inst.d + 0.25;
       const s = size / (2 * extent);
       const X = (x: number) => size / 2 + x * s;
       const Y = (y: number) => size / 2 - y * s;
 
       // domain fill + boundary
       ctx.beginPath();
-      for (let i = 0; i <= 512; i++) {
-        const t = (2 * Math.PI * i) / 512;
+      const nOutline = 4096;
+      for (let i = 0; i <= nOutline; i++) {
+        const t = (2 * Math.PI * i) / nOutline;
         const p = boundaryPoint(inst, t);
         if (i === 0) ctx.moveTo(X(p.x), Y(p.y));
         else ctx.lineTo(X(p.x), Y(p.y));
@@ -83,9 +88,9 @@ export function DomainView({ inst }: { inst: Laplace2dInstance }) {
     <figure style={{ margin: 0 }}>
       <canvas ref={canvasRef} />
       <figcaption className="field-caption" style={{ maxWidth: 360 }}>
-        The domain, the evaluation points where solutions are scored
-        (dots), and the exact solution's sources a distance {inst.d} outside
-        the boundary (crosses).
+        The domain, the {nEval} evaluation points where solutions are
+        scored (dots), and the exact solution's sources a distance {inst.d}{" "}
+        outside the boundary (crosses).
       </figcaption>
     </figure>
   );
