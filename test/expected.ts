@@ -24,6 +24,18 @@ export const MUST_REACH: Record<string, Record<string, number>> = {
     // nothing extra because the representation is smooth up to it.
     "star-nearfield": 1e-4,
   },
+  // WebGPU has no f64, and the MFS is conditioning-limited, so these
+  // floors are six to nine orders looser than the same method's on the CPU.
+  // That is the finding, not a defect; MUST_NOT_REACH below holds it in
+  // place.
+  "mfs-gpu": {
+    "disk-easy": 1e-6,
+    "star-medium": 1e-6,
+    "star-hard": 1e-2,
+    "flower-15": 1e-2,
+    "square-corners": 1e-5,
+    "star-nearfield": 1e-2,
+  },
   "nystrom-dlp": {
     "disk-easy": 1e-10,
     "star-medium": 1e-10,
@@ -65,4 +77,9 @@ export const MUST_NOT_REACH: Record<string, Record<string, number>> = {
   // a target 0.005 inside the boundary, either it acquired a near-field
   // correction or the instance stopped placing its targets there.
   "nystrom-dlp": { "star-nearfield": 1e-8 },
+  // Single precision is what caps mfs-gpu on the two instances where the
+  // method itself would otherwise reach 1e-13. If it ever got past this,
+  // it stopped computing in f32 and the pair with mfs stopped measuring
+  // what it claims to measure.
+  "mfs-gpu": { "disk-easy": 1e-9, "star-medium": 1e-9 },
 };

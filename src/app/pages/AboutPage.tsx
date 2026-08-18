@@ -18,11 +18,14 @@ export function AboutPage() {
         points. A problem defines its own solver interface and a short list
         of official <strong>instances</strong> (parameter combinations) in a
         written specification, so every solver is compared on identical
-        inputs. Solvers are MATLAB function files. Most run via{" "}
+        inputs. Solvers are usually MATLAB function files. Most run via{" "}
         <a href="https://numbl.org">numbl</a>, in the browser and from the
         command line alike; some run only in real MATLAB through the command
         line, and their results are marked as not reproducible in the
-        browser.
+        browser. An interface also has a TypeScript form, for a solver that
+        cannot be a MATLAB file: <code>mfs-gpu</code> is the same method as{" "}
+        <code>mfs</code>, written in TypeScript and WGSL and run on a WebGPU
+        device.
       </p>
 
       <h2>Measurement</h2>
@@ -81,7 +84,12 @@ export function AboutPage() {
         <code>chunkie-dlp</code> needs one thing more, the{" "}
         <a href="https://mip.sh">mip</a> package manager on the MATLAB path,
         from which the harness installs chunkie and its FLAM and fmm2d
-        dependencies on first use.
+        dependencies on first use. The solvers that run on WebGPU need a
+        device: in the browser that is <code>navigator.gpu</code>, and
+        outside it the optional{" "}
+        <a href="https://www.npmjs.com/package/webgpu">webgpu</a> package
+        (prebuilt Google Dawn), which is 68 MB and so is not shipped with
+        the command line; a run without it skips them.
       </p>
       <p className="small muted">
         Note that npx caches by the exact URL string; the <code>?v=</code>{" "}

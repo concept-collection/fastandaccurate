@@ -10,7 +10,9 @@
     "preview": "vite preview",
     "test": "tsx test/solver-test.ts",
     "check-app": "node scripts/check-app.mjs",
-    "test:matlab": "tsx test/matlab-test.ts"
+    "test:matlab": "tsx test/matlab-test.ts",
+    "test:gpu": "tsx test/gpu-test.ts",
+    "check-gpu": "node scripts/check-gpu.mjs"
   },
   "dependencies": {
     "fflate": "^0.8.3",
@@ -23,8 +25,12 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.0.0",
+    "@webgpu/types": "^0.1.71",
     "tsx": "^4.19.0",
     "typescript": "~5.9.3",
     "vite": "^7.0.0"
+  },
+  "optionalDependencies": {
+    "webgpu": "^0.4.0"
   }
 }

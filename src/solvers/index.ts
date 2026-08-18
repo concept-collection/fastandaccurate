@@ -19,8 +19,11 @@ export interface SolverManifest {
   version: string;
   backend: "cpu" | "gpu";
   /** What executes the solver: "numbl" solvers run in the browser and in
-   * the CLI; "matlab" solvers run only in real MATLAB via the CLI. */
-  runtime: "numbl" | "matlab";
+   * the CLI; "matlab" solvers run only in real MATLAB via the CLI;
+   * "webgpu" solvers are TypeScript and WGSL rather than a MATLAB file and
+   * run wherever a WebGPU device can be had, which is the browser and, with
+   * the optional `webgpu` package, the CLI. */
+  runtime: "numbl" | "matlab" | "webgpu";
   /** The resolution values a standard work-precision sweep runs. */
   sweepN: number[];
   /** Resolutions for instances that need a different range from sweepN,
@@ -34,9 +37,18 @@ export interface SolverManifest {
   sourceDir?: string;
 }
 
-/** Directory under src/solvers/ holding a solver's solver.m. */
+/** Directory under src/solvers/ holding a solver's source. */
 export function solverSourceDir(s: SolverManifest): string {
   return s.sourceDir ?? s.id;
+}
+
+/** The solver's source files, relative to src/solvers/. A MATLAB solver is
+ * one file; a WebGPU one is its TypeScript driver and the module that
+ * generates its WGSL. */
+export function solverFiles(s: SolverManifest): string[] {
+  const dir = solverSourceDir(s);
+  if (s.runtime === "webgpu") return [`${dir}/solver.ts`, `${dir}/wgsl.ts`];
+  return [`${dir}/solver.m`];
 }
 
 /** The resolutions a sweep of this solver runs on this instance. */
@@ -83,6 +95,53 @@ export const SOLVERS: SolverManifest[] = [
     version: "1.0.0",
     backend: "cpu",
     runtime: "numbl",
+    sweepN: [8, 12, 16, 24, 32, 48, 64, 96, 128, 192, 256, 384, 512, 768],
+  },
+  {
+    id: "mfs-gpu",
+    name: "Method of fundamental solutions (WebGPU)",
+    description:
+      "The mfs method unchanged, with its assembly, its dense solve and " +
+      "its evaluation all on the GPU through WebGPU. It is the one solver " +
+      "here that is not a MATLAB file: TypeScript and WGSL, run on the " +
+      "page's own device in the browser and on Dawn from the command line. " +
+      "The solve is a right-looking LU with partial pivoting, three " +
+      "dispatches per column, with the right-hand side carried as an extra " +
+      "matrix column so that forward substitution disappears; at n = 768 " +
+      "that is some 3000 dispatches in a single submit. Everything is in " +
+      "f32, because WebGPU has no double precision and no extension in the " +
+      "standard adds one. For a method whose accuracy is set by " +
+      "conditioning rather than by resolution that is decisive: on " +
+      "disk-easy the error stops at 3.0e-7 where the same method in double " +
+      "reaches 9.5e-16, and likewise 4.0e-7 against 7.7e-16 on star-medium " +
+      "and 2.7e-6 against 2.3e-13 on square-corners. On the three " +
+      "instances where mfs is already conditioning-limited in double the " +
+      "gap narrows to two and a half or three orders (1.4e-3 against " +
+      "4.0e-6 on star-hard), since there both are losing to the same " +
+      "ill-conditioning and only the rate differs. Note where the ceiling " +
+      "arrives: n = 96 charges, which is far too small a dense solve to " +
+      "pay for a GPU. At that resolution this solver is 4.5 times slower " +
+      "than mfs in the same browser and ten times slower than mfs-mat in " +
+      "real MATLAB, and the dispatch overhead is plain at the bottom of " +
+      "the sweep, where 8 charges still cost a millisecond. It does become " +
+      "the faster of the two browser solvers past about n = 384, reaching " +
+      "6.6 times at n = 768, but f32 has taken its own error to 1e-5 by " +
+      "then. So the curve is dominated everywhere: at every accuracy this " +
+      "solver reaches, mfs on the CPU reaches it sooner. We emphasize that " +
+      "this is a statement about the method and the size of its systems " +
+      "rather than about the hardware. An O(n^3) solve does eventually pay " +
+      "for a GPU, and the same kernels would; the MFS simply cannot use an " +
+      "n that large, because single precision has ended its convergence " +
+      "long before. A method that stays accurate as n grows, which on this " +
+      "problem means the integral-equation solvers, is where a WebGPU " +
+      "backend would have something to win.",
+    version: "1.0.0",
+    backend: "gpu",
+    runtime: "webgpu",
+    // The same list as mfs, so the two curves land on the same resolutions
+    // and the pair isolates the backend. Most of the upper half is past
+    // where f32 stops improving, and is there to show both the ceiling and
+    // what the O(n^3) solve costs on either side.
     sweepN: [8, 12, 16, 24, 32, 48, 64, 96, 128, 192, 256, 384, 512, 768],
   },
   {

@@ -48,10 +48,20 @@ export async function fetchCommittedResults(): Promise<ResultFile[]> {
   return results.filter((r): r is ResultFile => r !== null);
 }
 
-/** Short human label for the environment a result was measured in. */
+/** Short human label for the environment a result was measured in. The
+ * adapter is appended for a solver that ran on a GPU, since otherwise two
+ * results from the same machine, one on its CPU and one on its GPU, would
+ * carry the same label. */
 export function environmentLabel(r: ResultFile): string {
   const env = r.environment;
-  if (env.machineLabel) return `${env.machineLabel} (${env.kind})`;
-  if (env.kind === "browser") return "browser";
-  return `${env.cpu ?? "unknown cpu"} (${env.kind})`;
+  const gpu = env.gpu ? ` on ${shortGpu(env.gpu)}` : "";
+  if (env.machineLabel) return `${env.machineLabel} (${env.kind})${gpu}`;
+  if (env.kind === "browser") return `browser${gpu}`;
+  return `${env.cpu ?? "unknown cpu"} (${env.kind})${gpu}`;
+}
+
+/** Adapter strings run long ("Intel open-source Mesa driver: Mesa 25.0.7"),
+ * and a chart legend has no room for them. */
+function shortGpu(s: string): string {
+  return s.length > 28 ? `${s.slice(0, 27)}…` : s;
 }

@@ -19,6 +19,9 @@ import { INSTANCES, getInstance } from "../problems/laplace2d/spec";
 import { setNumblFileIO } from "../harness/numblRun";
 import { NodeFileIOAdapter } from "./nodeFileIO";
 import { matlabAvailable, matlabSetup, runMatlabSweep } from "./matlabRun";
+import { gpuUnavailableReason } from "../harness/webgpuDevice";
+import { GPU_TIMER, runSweepGpu } from "../harness/webgpuRun";
+import { getWebgpuSolver } from "../solvers/webgpuSolvers";
 
 setNumblFileIO((vfs) => new NodeFileIOAdapter(vfs));
 import {
@@ -74,6 +77,23 @@ function environment(machineLabel: string | undefined, builtin: boolean): Result
     cpu: os.cpus()[0]?.model?.trim() ?? "unknown",
     machineLabel,
     browserReproducible: builtin,
+  };
+}
+
+/** A WebGPU run records its adapter, and no numbl version: numbl is not
+ * involved. */
+function gpuEnvironment(
+  machineLabel: string | undefined,
+  gpu: string
+): ResultEnvironment {
+  return {
+    kind: "node",
+    runtime: `node ${process.version}`,
+    gpu,
+    os: `${os.platform()} ${os.release()}`,
+    cpu: os.cpus()[0]?.model?.trim() ?? "unknown",
+    machineLabel,
+    browserReproducible: true,
   };
 }
 
@@ -190,11 +210,28 @@ async function runCommand(flags: Record<string, string>) {
       }
       wanted = wanted.filter((s) => s.runtime !== "matlab");
     }
+    if (wanted.some((s) => s.runtime === "webgpu")) {
+      const why = await gpuUnavailableReason();
+      if (why !== null) {
+        if (flags.solver) {
+          throw new Error(`${flags.solver} runs on WebGPU: ${why}`);
+        }
+        for (const s of wanted.filter((x) => x.runtime === "webgpu")) {
+          console.log(`skipping ${s.id}: runs on WebGPU. ${why}`);
+        }
+        wanted = wanted.filter((s) => s.runtime !== "webgpu");
+      }
+    }
     solverList = wanted.map((manifest) => ({
       manifest,
+      // A WebGPU solver has no MATLAB source; the problem files are still
+      // read so that the numbl and MATLAB entries share one code path.
       sources: {
         ...base,
-        solver: readSrc(`solvers/${solverSourceDir(manifest)}/solver.m`),
+        solver:
+          manifest.runtime === "webgpu"
+            ? ""
+            : readSrc(`solvers/${solverSourceDir(manifest)}/solver.m`),
       },
       source: "builtin",
     }));
@@ -216,7 +253,19 @@ async function runCommand(flags: Record<string, string>) {
       let resultPoints;
       let runEnv = env;
       let timer: string | undefined;
-      if (manifest.runtime === "matlab") {
+      if (manifest.runtime === "webgpu") {
+        const points = await runSweepGpu({
+          instance: inst,
+          solver: manifest,
+          timing,
+          maxN,
+          onPoint: printPoint,
+        });
+        resultPoints = points.map(toResultPoint);
+        const gpu = await getWebgpuSolver(manifest.id);
+        runEnv = gpuEnvironment(flags.label, `${gpu.adapter} (${gpu.via})`);
+        timer = GPU_TIMER;
+      } else if (manifest.runtime === "matlab") {
         const setup = matlabSetup(manifest.id);
         const ns = sweepNFor(manifest, inst.id).filter(
           (n) => maxN === undefined || n <= maxN

@@ -11,7 +11,7 @@
     "isolatedModules": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "types": ["vite/client", "node"]
+    "types": ["vite/client", "node", "@webgpu/types"]
   },
   "include": ["src", "test", "scripts", "vite.config.ts"]
 }

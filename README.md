@@ -13,15 +13,18 @@ problem-specified evaluation points. The central object is the
 resolution varies. No single ranking is presented; which curve wins can
 differ by accuracy regime, instance, and machine.
 
-Solvers are MATLAB function files. Most run via
+Solvers are usually MATLAB function files. Most run via
 [numbl](https://numbl.org) (MATLAB syntax in the browser and in node),
 both on the site and from the command line; some run only in real
 MATLAB through the command line, and their results are marked as not
 reproducible in the browser. Two registry entries may share one file:
 the `-mat` solvers are their numbl twin's `solver.m` run in real MATLAB,
-so that pair of curves measures the runtime rather than the method. Each
-problem defines its own interface and instances in a written
-specification; interfaces are per problem rather than shared.
+so that pair of curves measures the runtime rather than the method. A
+problem's interface also has a TypeScript form, for a solver that cannot
+be a MATLAB file: `mfs-gpu` is the same method as `mfs` written in
+TypeScript and WGSL and run on a WebGPU device. Each problem defines its
+own interface and instances in a written specification; interfaces are
+per problem rather than shared.
 
 ## Problems
 
@@ -60,6 +63,13 @@ makes its accelerated code path available without a Fortran compiler on
 the machine, since the mip fmm2d package ships a compiled MEX binary per
 platform.
 
+The solvers whose runtime is `webgpu` need a WebGPU device. In the
+browser that is `navigator.gpu`; outside it, it is the optional
+[`webgpu`](https://www.npmjs.com/package/webgpu) package (prebuilt Google
+Dawn). That package is 68 MB, so the published command line does not ship
+it and a run without it skips those solvers; `npm install webgpu` in a
+checkout is enough to have them.
+
 Useful flags: `--instance <id>`, `--solver <id>`, `--repeats N` (the
 minimum timed runs per point; each point is then repeated until it has
 used the `--time-budget`, 0.5 s by default), `--max-n N`, `--out dir`.
@@ -81,17 +91,24 @@ to this repository; see `src/solvers/`.
 
 ```
 npm install
-npm run dev        # local dev server
-npm test           # solver convergence tests through numbl in node
-npm run build      # type-check, site build, CLI tarball (dist/)
-npm run check-app  # headless end-to-end check of the built site
+npm run dev         # local dev server
+npm test            # solver convergence tests through numbl in node
+npm run test:matlab # the same for the MATLAB-runtime solvers (needs matlab)
+npm run test:gpu    # the same for the WebGPU solvers (needs a device)
+npm run build       # type-check, site build, CLI tarball (dist/)
+npm run check-app   # headless end-to-end check of the built site
+npm run check-gpu   # headless check that a WebGPU solver runs in a page
 ```
 
+Only `npm test` runs in CI, since a GitHub runner has neither MATLAB nor a
+GPU; the other three skip cleanly where their runtime is missing and are
+meant to be run locally before pushing solver changes.
+
 Layout: `src/problems/` holds problem specs, instances, exact solutions,
-and the problem-side MATLAB; `src/solvers/` the solver MATLAB files and
-manifests; `src/harness/` the shared runner, sweep, and result schema
-(used identically by the browser worker and the CLI); `src/app/` the
-React site; `src/cli/` the command line.
+the problem-side MATLAB and its TypeScript form; `src/solvers/` the
+solver files and manifests; `src/harness/` the shared runner, sweep,
+timing policy, and result schema (used identically by the browser worker
+and the CLI); `src/app/` the React site; `src/cli/` the command line.
 
 Deployed to GitHub Pages by `.github/workflows/deploy.yml` on push to
 main.

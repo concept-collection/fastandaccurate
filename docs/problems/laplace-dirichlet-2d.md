@@ -223,6 +223,43 @@ The return value is a struct: `out.uEval` (m×1, required) and
 reconstruct the sources analytically or otherwise special-case the known
 solution; submissions are reviewed for this.
 
+### The TypeScript form
+
+A solver that cannot be a MATLAB file, one that runs on a GPU for
+instance, receives the same information as a plain object instead, built by
+`src/problems/laplace2d/problem.ts`:
+
+| field | meaning |
+|---|---|
+| `curve(t)` | `{x, y}`, the boundary point at parameter t |
+| `curveD(t)`, `curveDD(t)` | its first and second derivatives |
+| `g(t)` | Dirichlet data at boundary parameter t |
+| `evalXY` | `Float64Array`, `nEval` points as interleaved x, y |
+| `vizXY` | the visualization grid, interleaved, empty when not wanted |
+
+and returns `uEval`, and `uGrid` when the grid was asked for, as
+`Float64Array`. Everything else is the same in both forms: the same
+evaluation points in the same order, the same prohibition on
+reconstructing the sources, and the same timing protocol. Only the clock
+differs. A MATLAB solver is timed by tic/toc inside its own runtime; a GPU
+solver has no such clock, so it is timed on the host around a run that
+ends by awaiting the device, with the values read back before the clock
+stops. That is the same synchronization point MATLAB's tic/toc gives.
+Shader compilation and pipeline creation happen once per device rather
+than once per run, which puts them where numbl's JIT compilation already
+is: outside the timed runs, absorbed by the warmups.
+
+A note on what a GPU solver can and cannot compute here. WGSL has f32 and
+f16 and no double precision, and no extension in the WebGPU standard adds
+one. Emulating double in software (carrying a value as an unevaluated sum
+of two f32) is not a reliable way out either: it rests on error-free
+transformations such as `s = a + b; err = b - (s - a)`, which are exact
+only if the compiler evaluates them as written, and WGSL permits an
+implementation to use greater precision or to reassociate. So a WebGPU
+solver on this problem works in single precision, and for a method whose
+accuracy is limited by conditioning rather than by resolution that sets a
+ceiling the CPU does not have. `mfs-gpu` measures where that ceiling is.
+
 ## Visualization grid
 
 When requested, `prob.vizXY` lists a 200×200 grid of points over the

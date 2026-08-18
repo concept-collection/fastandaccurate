@@ -12,6 +12,7 @@ import { INSTANCES, getInstance } from "../src/problems/laplace2d/spec";
 import {
   SOLVERS,
   getSolver,
+  solverFiles,
   solverSourceDir,
   type SolverManifest,
 } from "../src/solvers";
@@ -45,22 +46,26 @@ const TEST_TIMING = { ...DEFAULT_TIMING, minTimedRuns: 1, timeBudgetSeconds: 0 }
 let failures = 0;
 
 // Registry consistency, checked for every entry including the ones this
-// suite does not run: the solver file must exist, it must have stated
-// expectations, and an entry that borrows another entry's solver.m must
-// carry the same version, so that two results claiming the same solver
+// suite does not run: the solver's source files must exist, it must have
+// stated expectations, and an entry that borrows another entry's source
+// must carry the same version, so that two results claiming the same solver
 // version really did run the same code.
 for (const s of SOLVERS) {
   const dir = solverSourceDir(s);
-  const path = `src/solvers/${dir}/solver.m`;
-  if (!existsSync(join(root, path))) {
-    console.log(`FAIL: ${s.id} has no ${path}`);
-    failures++;
+  for (const file of solverFiles(s)) {
+    const path = `src/solvers/${file}`;
+    if (!existsSync(join(root, path))) {
+      console.log(`FAIL: ${s.id} has no ${path}`);
+      failures++;
+    }
   }
   const expected = MUST_REACH[dir];
   if (!expected) {
     console.log(`FAIL: ${s.id} has no entry in test/expected.ts`);
     failures++;
-  } else if (s.runtime === "numbl") {
+  } else if (s.runtime === "numbl" || s.runtime === "webgpu") {
+    // Both of these run every instance, in test/solver-test.ts and
+    // test/gpu-test.ts respectively.
     for (const inst of INSTANCES) {
       if (expected[inst.id] === undefined) {
         console.log(`FAIL: ${s.id} has no expectation on ${inst.id}`);

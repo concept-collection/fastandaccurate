@@ -34,7 +34,11 @@ interface Computed {
 }
 
 // Only solvers that run in the browser can compute a field here.
-const BROWSER_SOLVERS = SOLVERS.filter((s) => s.runtime === "numbl");
+// Everything a browser can run: numbl in the worker, and the WebGPU
+// solvers on the worker's own device.
+const BROWSER_SOLVERS = SOLVERS.filter(
+  (s) => s.runtime === "numbl" || s.runtime === "webgpu"
+);
 
 export function SolutionSection({ inst }: { inst: Laplace2dInstance }) {
   const [solverId, setSolverId] = useState(BROWSER_SOLVERS[0].id);

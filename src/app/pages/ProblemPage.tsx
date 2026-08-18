@@ -15,7 +15,7 @@ import {
 import { solverColorVar } from "../colors";
 import { sweepInBrowser } from "../workerClient";
 import { DEFAULT_TIMING } from "../../harness/timing";
-import { solverSource } from "../matlabSources";
+import { solverSourceFiles } from "../matlabSources";
 import {
   WorkPrecisionChart,
   type ChartCurve,
@@ -265,12 +265,15 @@ export function ProblemPage({ problemId }: { problemId: string }) {
 
       <h2>Solvers</h2>
       <p className="small muted" style={{ maxWidth: 640 }}>
-        Each solver is a MATLAB function file implementing the interface in
-        the <a href={SPEC_URL}>specification</a>. Most run through numbl, in
-        the browser and from the command line alike; the rest run only in
-        real MATLAB, through the command line. The <code>-mat</code> entries
-        are their numbl twin's file run that way, so each such pair measures
-        the runtime rather than the method.
+        Most solvers are MATLAB function files implementing the interface in
+        the <a href={SPEC_URL}>specification</a>, and most of those run
+        through numbl, in the browser and from the command line alike; the
+        rest run only in real MATLAB, through the command line. The{" "}
+        <code>-mat</code> entries are their numbl twin's file run that way,
+        so each such pair measures the runtime rather than the method.{" "}
+        <code>mfs-gpu</code> is the same specification's second form:
+        TypeScript and WGSL against the problem as a plain object, running on
+        a WebGPU device.
       </p>
       {SOLVERS.map((s) => (
         <div
@@ -288,24 +291,28 @@ export function ProblemPage({ problemId }: { problemId: string }) {
               {s.id} v{s.version} · {s.backend} ·{" "}
               {s.runtime === "matlab"
                 ? "runs in MATLAB via the command line"
-                : "runs via numbl in the browser and command line"}
+                : s.runtime === "webgpu"
+                  ? "runs on WebGPU in the browser and command line"
+                  : "runs via numbl in the browser and command line"}
               {s.sourceDir ? ` · same solver.m as ${s.sourceDir}` : ""}
             </span>
           </div>
           <p className="small" style={{ color: "var(--text-2)" }}>
             {s.description}
           </p>
-          <details>
-            <summary className="small" style={{ cursor: "pointer" }}>
-              solver.m
-            </summary>
-            <pre style={{ maxHeight: 420, overflow: "auto", marginTop: 8 }}>
-              {solverSource(s.id)}
-            </pre>
-          </details>
+          {solverSourceFiles(s.id).map((f) => (
+            <details key={f.name}>
+              <summary className="small" style={{ cursor: "pointer" }}>
+                {f.name}
+              </summary>
+              <pre style={{ maxHeight: 420, overflow: "auto", marginTop: 8 }}>
+                {f.code}
+              </pre>
+            </details>
+          ))}
           <a
             className="small"
-            href={`${REPO_URL}/blob/main/src/solvers/${solverSourceDir(s)}/solver.m`}
+            href={`${REPO_URL}/tree/main/src/solvers/${solverSourceDir(s)}`}
           >
             view on GitHub
           </a>
@@ -342,7 +349,7 @@ export function ProblemPage({ problemId }: { problemId: string }) {
               />
               {s.name}
             </label>{" "}
-            {s.runtime === "numbl" ? (
+            {s.runtime === "numbl" || s.runtime === "webgpu" ? (
               <button
                 onClick={() => runSolver(s.id)}
                 disabled={running !== null}

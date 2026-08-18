@@ -23,6 +23,9 @@ export interface ResultEnvironment {
   numblVersion?: string;
   os?: string;
   cpu?: string;
+  /** The WebGPU adapter, for a solver that ran on one, and how WebGPU was
+   * reached. Absent otherwise. */
+  gpu?: string;
   /** Free-text label a human recognizes ("office workstation"). */
   machineLabel?: string;
   /** Whether a visitor can rerun this result in the browser. */

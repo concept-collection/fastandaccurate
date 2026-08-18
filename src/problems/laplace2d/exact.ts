@@ -37,6 +37,25 @@ export function boundaryRD(inst: Laplace2dInstance, t: number): number {
   return -inst.a * inst.k * Math.sin(inst.k * t);
 }
 
+/** d2r/dt2 of the boundary radius, written like boundaryRD through the
+ * ratios f'/f and f''/f so that the rounded-square case stays away from
+ * the underflow in f itself. */
+export function boundaryRDD(inst: Laplace2dInstance, t: number): number {
+  if (inst.shape === "rounded-square") {
+    const p = inst.p as number;
+    const c = Math.cos(t);
+    const sn = Math.sin(t);
+    const f = c ** p + sn ** p;
+    const fp = p * (sn ** (p - 1) * c - c ** (p - 1) * sn);
+    const fpp =
+      p * ((p - 1) * (sn ** (p - 2) * c ** 2 + c ** (p - 2) * sn ** 2) - f);
+    const u = fp / f;
+    const v = fpp / f;
+    return boundaryR(inst, t) * ((1 / p) * (1 / p + 1) * u ** 2 - v / p);
+  }
+  return -inst.a * inst.k * inst.k * Math.cos(inst.k * t);
+}
+
 /** The largest radius the boundary reaches, which sets the view extent
  * and the visualization grid. */
 export function maxRadius(inst: Laplace2dInstance): number {
