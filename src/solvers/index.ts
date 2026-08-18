@@ -190,17 +190,17 @@ export const SOLVERS: SolverManifest[] = [
       "equation is identical and only the targets move, to within 0.005 " +
       "of the boundary; what is measured is the corrected near-field " +
       "evaluation by itself. chunkie loses nothing there: 1.8e-11 at 64 " +
-      "panels in 0.11 s, against 2.3e-11 at 48 panels in 0.05 s on " +
+      "panels in 0.09 s, against 2.3e-11 at 48 panels in 0.05 s on " +
       "star-hard, so the near targets cost it a third more panels and " +
-      "about twice the time, and no accuracy. nystrom-dlp-mat, the same " +
+      "roughly twice the time, and no accuracy. nystrom-dlp-mat, the same " +
       "integral equation with an uncorrected evaluation, gives 1.5e-10 on " +
       "star-hard in 0.017 s and 1.5e-1 here at those same 768 nodes, and " +
       "needs 4096 nodes and 0.86 s to bring the closest target to 6.7e-6: " +
-      "eight times chunkie's time for five orders less accuracy. mfs-mat, " +
+      "nine times chunkie's time for five orders less accuracy. mfs-mat, " +
       "which as on square-corners has no near field to correct, is " +
       "stopped instead by its own conditioning at 1.7e-6, and is the " +
       "cheapest route to that accuracy (0.017 s against chunkie's " +
-      "0.065 s for 2.4e-6). Past 1e-6, though, chunkie is the only one of " +
+      "0.042 s for 2.4e-6). Past 1e-6, though, chunkie is the only one of " +
       "the three that goes anywhere at all.",
     version: "3.0.0",
     backend: "cpu",
